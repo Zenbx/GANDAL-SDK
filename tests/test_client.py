@@ -36,7 +36,7 @@ def test_orchestration_health() -> None:
     """health() appelle /api/v1/health."""
     respx.get("http://example.test/api/v1/health").respond(200, json={"status": "ok"})
     with GandalClient("http://example.test") as client:
-        assert client.orchestration.health() == {"status": "ok"}
+        assert client.orchestration.health().status == "ok"
 
 
 @respx.mock

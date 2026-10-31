@@ -1,6 +1,70 @@
-"""Client de l'API d'orchestration GANDAL (/api/v1)."""
+"""Client typé de l'API d'orchestration GANDAL (/api/v1)."""
 
 from gandal_sdk.orchestration.api import OrchestrationApi
 from gandal_sdk.orchestration.auth import IdentityOut, TokenOut
+from gandal_sdk.orchestration.enums import (
+    InvitationStatus,
+    MembershipRole,
+    PowerAction,
+    PowerState,
+    RequestKind,
+    RequestStatus,
+    ResourceType,
+    ShareStatus,
+    StorageState,
+    VmState,
+)
+from gandal_sdk.orchestration.models import (
+    ConsoleOut,
+    DeletionOut,
+    DeletionPreviewOut,
+    HealthOut,
+    InvitationCreateIn,
+    InvitationOut,
+    NetworkOut,
+    PackOut,
+    Page,
+    PowerOut,
+    ProfileOut,
+    ProjectOut,
+    RequestOut,
+    ShareOut,
+    StorageOut,
+    VMCreateRequestIn,
+    VMOut,
+    VmConfigurationIn,
+)
 
-__all__ = ["OrchestrationApi", "IdentityOut", "TokenOut"]
+__all__ = [
+    "OrchestrationApi",
+    "IdentityOut",
+    "TokenOut",
+    "Page",
+    "HealthOut",
+    "ProjectOut",
+    "VMOut",
+    "VMCreateRequestIn",
+    "VmConfigurationIn",
+    "StorageOut",
+    "NetworkOut",
+    "PackOut",
+    "RequestOut",
+    "ShareOut",
+    "InvitationOut",
+    "InvitationCreateIn",
+    "ProfileOut",
+    "PowerOut",
+    "ConsoleOut",
+    "DeletionPreviewOut",
+    "DeletionOut",
+    "VmState",
+    "PowerAction",
+    "PowerState",
+    "StorageState",
+    "RequestStatus",
+    "RequestKind",
+    "ShareStatus",
+    "InvitationStatus",
+    "MembershipRole",
+    "ResourceType",
+]
