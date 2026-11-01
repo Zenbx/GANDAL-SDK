@@ -158,3 +158,11 @@ def test_console_not_implemented_is_explicit(client: GandalClient) -> None:
     with pytest.raises(GandalApiError) as caught:
         client.hypervisor.console("vm-9a6bd88b3c5f")
     assert (caught.value.status, caught.value.code) == (501, "not_implemented")
+
+
+@respx.mock
+def test_health_reports_pool_master(client: GandalClient) -> None:
+    respx.get(f"{CELL}/health").respond(
+        200, json={"status": "ok", "pool_master": "192.168.123.100", "version": "0.1.0"}
+    )
+    assert client.hypervisor.health().pool_master == "192.168.123.100"

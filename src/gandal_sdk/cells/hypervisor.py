@@ -102,6 +102,14 @@ class HypervisorVm(BaseModel):
         return VmRef(vm_id=self.vm_id, ip_address=self.ip_address)
 
 
+class CellHealth(BaseModel):
+    """Etat de la cellule et maitre du pool qu'elle joint."""
+
+    status: str
+    pool_master: str
+    version: str
+
+
 class CreatedVm(BaseModel):
     """Reponse a une creation : la VM (etat creating) et son operation."""
 
@@ -130,6 +138,10 @@ class HypervisorCell:
         return cast(HttpTransport, self._http)
 
     # --- lecture ----------------------------------------------------------------
+
+    def health(self) -> CellHealth:
+        """Leve GandalApiError upstream_unavailable (503) si le pool ne repond pas."""
+        return CellHealth.model_validate(self._transport().request("GET", "/health"))
 
     def list_vms(self) -> list[HypervisorVm]:
         """VM gerees par la cellule (les autres VM du pool n'y figurent jamais)."""
