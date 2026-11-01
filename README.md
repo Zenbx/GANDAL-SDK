@@ -121,6 +121,43 @@ except WaiterTimeout:
 `unknown` n'est jamais traite comme un succes. Chaque waiter accepte `delay=`
 et `max_attempts=`.
 
+## Cellule hyperviseur : les VM du pool XCP-ng
+
+`client.hypervisor` pilote les VM du pool via le service
+[gandal-hypervisor](../gandal-hypervisor). Sans endpoint configure, chaque appel
+leve `CellUnavailable`.
+
+```python
+from gandal_sdk import GandalClient
+from gandal_sdk.cells.hypervisor import PowerAction, VmSpec
+
+client = GandalClient(
+    "http://localhost:8000",
+    cell_urls={"hypervisor": "http://127.0.0.1:8770"},
+    cell_tokens={"hypervisor": "<jeton de la cellule>"},
+)
+# ou GandalClient.from_env() avec GANDAL_HYPERVISOR_ENDPOINT / GANDAL_HYPERVISOR_TOKEN
+
+created = client.hypervisor.create_vm(VmSpec(name="sdk-it-web", ram_gb=1, vcpu=1, vram_gb=0, ssd_gb=10))
+client.hypervisor.wait_for_operation(created.operation)
+vm = client.hypervisor.wait_until_running(created.vm)
+print(vm.ip_address, vm.host)
+
+client.hypervisor.power(vm, PowerAction.STOP)
+client.hypervisor.wait_until_stopped(vm)
+client.hypervisor.delete_vm(vm)
+client.hypervisor.wait_until_deleted(vm)
+```
+
+Les ecritures renvoient une operation (`wait_for_operation` leve `WaiterFailure`
+avec le code et le detail XAPI si elle echoue). Tests de bout en bout contre la
+cellule, faux pool par defaut, pool reel avec `GANDAL_HV_FAKE=0` (voir le README
+de la cellule) :
+
+```bash
+scripts/run_hypervisor_integration.sh ../gandal-hypervisor
+```
+
 ## Helpers typés disponibles (orchestration)
 
 | Acces | Couverture |
@@ -144,7 +181,7 @@ Les methodes generiques `get/post/put/patch/delete` restent disponibles en echap
 | --- | --- |
 | `client.orchestration` | Disponible (helpers typés `/api/v1`) |
 | `client.iam` | Stub - en attente de l'API cellule |
-| `client.hypervisor` | Stub - en attente de l'API cellule |
+| `client.hypervisor` | Disponible avec la cellule gandal-hypervisor |
 | `client.network` | Stub - en attente de l'API cellule |
 | `client.storage` | Stub - en attente de l'API cellule |
 | `client.dns` | Stub - en attente de l'API cellule |
