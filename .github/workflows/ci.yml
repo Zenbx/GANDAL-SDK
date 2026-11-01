@@ -24,6 +24,21 @@ jobs:
       - run: ruff check src tests scripts
       - run: pytest -q
 
+  # Le SDK contre une vraie iaas-api (branche main), sur une base neuve.
+  integration:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: GANDAL-BACKEND-IaaS/iaas-api
+          path: iaas-api
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -e ".[dev]" -r iaas-api/requirements.txt
+      - run: scripts/run_integration.sh iaas-api python
+
   # L'instantane openapi/iaas-api.json est-il encore celui de la branche main d'iaas-api ?
   # Un echec signale que l'API a change : relancer sync_openapi.py et ajuster le SDK.
   openapi-drift:
