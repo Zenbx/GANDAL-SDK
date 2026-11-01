@@ -31,6 +31,7 @@ where = ["src"]
 asyncio_mode = "auto"
 pythonpath = ["src"]
 testpaths = ["tests"]
+markers = ["integration: necessite une instance d'iaas-api (GANDAL_IT_ENDPOINT)"]
 
 [tool.ruff]
 line-length = 100
