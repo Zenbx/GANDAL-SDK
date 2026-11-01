@@ -49,6 +49,8 @@ def _python_types(annotation: object) -> set[type]:
 
 def _accepts(python_types: set[type], json_type: str) -> bool:
     """Le modele du SDK sait-il lire ou ecrire ce type JSON ?"""
+    if typing.Any in python_types:
+        return True
     if json_type == "null":
         return type(None) in python_types
     expected = _JSON_TO_PY[json_type]
