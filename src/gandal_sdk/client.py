@@ -24,17 +24,22 @@ class GandalClient:
         timeout: float = 30.0,
         retry: RetryPolicy | None = None,
         cell_urls: dict[str, str] | None = None,
+        cell_tokens: dict[str, str] | None = None,
     ) -> None:
         """Initialise le transport d'orchestration et les sous-clients cellules.
 
         retry regle les relances automatiques ; RetryPolicy(max_attempts=1) les desactive.
-        cell_urls est reserve pour brancher plus tard des hosts distincts par cellule.
+        cell_urls / cell_tokens : endpoint et jeton propres a chaque cellule, par nom
+        (aujourd'hui « hypervisor ») ; une cellule sans endpoint leve CellUnavailable.
         """
         self._cell_urls = dict(cell_urls or {})
+        self._cell_transports: list[HttpTransport] = []
         self._http = HttpTransport(base_url, timeout=timeout, retry=retry)
         self.orchestration = OrchestrationApi(self._http)
         self.iam = IamCell()
-        self.hypervisor = HypervisorCell()
+        self.hypervisor = HypervisorCell(
+            self._cell_transport("hypervisor", timeout, retry, cell_tokens or {})
+        )
         self.network = NetworkCell()
         self.storage = StorageCell()
         self.dns = DnsCell()
@@ -61,6 +66,17 @@ class GandalClient:
             client.set_token(credentials.token)
         return client
 
+    def _cell_transport(
+        self, name: str, timeout: float, retry: RetryPolicy | None, tokens: dict[str, str]
+    ) -> HttpTransport | None:
+        url = self._cell_urls.get(name)
+        if not url:
+            return None
+        transport = HttpTransport(url, timeout=timeout, retry=retry)
+        transport.set_token(tokens.get(name))
+        self._cell_transports.append(transport)
+        return transport
+
     def login(self, email: str, password: str) -> TokenOut:
         """Authentifie via l'orchestration et conserve le Bearer pour les appels suivants."""
         token = self.orchestration.auth.login(email, password)
@@ -76,8 +92,10 @@ class GandalClient:
         self._http.set_token(token)
 
     def close(self) -> None:
-        """Ferme les connexions HTTP du client."""
+        """Ferme les connexions HTTP du client et de ses cellules."""
         self._http.close()
+        for transport in self._cell_transports:
+            transport.close()
 
     def __enter__(self) -> GandalClient:
         """Permet l'usage en context manager."""
