@@ -50,7 +50,7 @@ class HttpTransport:
         """Ouvre un client httpx pointe sur base_url, ou reutilise celui fourni."""
         self.base_url = base_url.rstrip("/")
         self.retry = retry or RetryPolicy()
-        self._sleep = sleep
+        self.sleep = sleep
         self._owns_client = client is None
         self._client = client or httpx.Client(base_url=self.base_url, timeout=timeout)
         self._token: str | None = None
@@ -97,7 +97,7 @@ class HttpTransport:
             except httpx.TransportError:
                 if not replayable or attempt >= self.retry.max_attempts:
                     raise
-                self._sleep(self.retry.delay(attempt, None))
+                self.sleep(self.retry.delay(attempt, None))
                 attempt += 1
                 continue
             retryable = response.status_code == 429 or (
@@ -105,7 +105,7 @@ class HttpTransport:
             )
             if not retryable or attempt >= self.retry.max_attempts:
                 return self._parse(response)
-            self._sleep(self.retry.delay(attempt, response.headers.get("retry-after")))
+            self.sleep(self.retry.delay(attempt, response.headers.get("retry-after")))
             attempt += 1
 
     def close(self) -> None:
