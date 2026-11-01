@@ -124,7 +124,7 @@ et `max_attempts=`.
 ## Cellule hyperviseur : les VM du pool XCP-ng
 
 `client.hypervisor` pilote les VM du pool via le service
-[gandal-hypervisor](../gandal-hypervisor). Sans endpoint configure, chaque appel
+[gandal-hypervisor](https://github.com/BalaAndegue/gandal-hypervisor). Sans endpoint configure, chaque appel
 leve `CellUnavailable`.
 
 ```python
