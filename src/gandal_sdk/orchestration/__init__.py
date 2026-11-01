@@ -30,9 +30,9 @@ from gandal_sdk.orchestration.models import (
     RequestOut,
     ShareOut,
     StorageOut,
+    VmConfigurationIn,
     VMCreateRequestIn,
     VMOut,
-    VmConfigurationIn,
 )
 
 __all__ = [
