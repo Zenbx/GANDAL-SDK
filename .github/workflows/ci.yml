@@ -1,0 +1,38 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: "0 5 * * *"
+  workflow_dispatch:
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -e ".[dev]"
+      - run: ruff check src tests scripts
+      - run: pytest -q
+
+  # L'instantane openapi/iaas-api.json est-il encore celui de la branche main d'iaas-api ?
+  # Un echec signale que l'API a change : relancer sync_openapi.py et ajuster le SDK.
+  openapi-drift:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: GANDAL-BACKEND-IaaS/iaas-api
+          path: iaas-api
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install httpx -r iaas-api/requirements.txt
+      - run: python scripts/sync_openapi.py --app-dir iaas-api
+      - run: git diff --exit-code openapi/
