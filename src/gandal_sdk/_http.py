@@ -12,6 +12,20 @@ import httpx
 
 from gandal_sdk.errors import GandalApiError
 
+# Code metier par statut HTTP (API_ENDPOINTS.md §1.4), quand la reponse n'a pas
+# l'enveloppe {error: {...}} : erreurs par defaut de FastAPI ({"detail": ...}),
+# proxy, ou route inexistante.
+_CODE_BY_STATUS = {
+    400: "bad_request",
+    401: "unauthorized",
+    403: "forbidden",
+    404: "not_found",
+    409: "conflict",
+    422: "validation_error",
+    429: "throttled",
+    503: "upstream_unavailable",
+}
+
 # Methodes qu'on peut rejouer sans risque de doublon (docs/CONVENTIONS_API.md §5).
 _IDEMPOTENT_METHODS = frozenset({"GET", "HEAD", "OPTIONS", "PUT", "DELETE"})
 
@@ -127,15 +141,20 @@ class HttpTransport:
         if response.is_success:
             return body
 
-        code = "internal_error"
+        code = _CODE_BY_STATUS.get(response.status_code, "internal_error")
         message = response.reason_phrase or "Erreur HTTP"
         details: Any = None
         if isinstance(body, dict):
             err = body.get("error")
+            detail = body.get("detail")
             if isinstance(err, dict):
                 code = str(err.get("code") or code)
                 message = str(err.get("message") or message)
                 details = err.get("details")
+            elif isinstance(detail, str):
+                message = detail
+            elif detail is not None:
+                details = detail  # liste d'erreurs de validation de FastAPI
             else:
                 details = body
         raise GandalApiError(code, message, details=details, status=response.status_code)

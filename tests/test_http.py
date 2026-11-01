@@ -4,7 +4,7 @@ import httpx
 import pytest
 import respx
 
-from gandal_sdk._http import HttpTransport
+from gandal_sdk._http import HttpTransport, RetryPolicy
 from gandal_sdk.errors import GandalApiError
 
 
@@ -82,3 +82,44 @@ def test_close_is_safe_with_injected_client() -> None:
     transport.close()
     # le client injecte reste utilisable
     client.close()
+
+
+# Reponses relevees telles quelles sur iaas-api (FastAPI par defaut, sans enveloppe).
+@pytest.mark.parametrize(
+    ("status", "body", "code", "message"),
+    [
+        (401, {"detail": "Jeton manquant"}, "unauthorized", "Jeton manquant"),
+        (403, {"detail": "Réservé aux administrateurs"}, "forbidden", "Réservé aux administrateurs"),
+        (404, {"detail": "Not Found"}, "not_found", "Not Found"),
+        (500, {"detail": "boom"}, "internal_error", "boom"),
+    ],
+)
+@respx.mock
+def test_fastapi_detail_errors_get_code_from_status(
+    status: int, body: dict, code: str, message: str
+) -> None:
+    """Sans enveloppe {error}, le code vient du statut HTTP et le message de detail."""
+    respx.get("http://example.test/x").respond(status, json=body)
+    transport = HttpTransport("http://example.test", retry=RetryPolicy(max_attempts=1))
+    with pytest.raises(GandalApiError) as caught:
+        transport.request("GET", "/x")
+    assert (caught.value.code, caught.value.message) == (code, message)
+    assert caught.value.details is None
+
+
+@respx.mock
+def test_fastapi_validation_errors_kept_in_details() -> None:
+    """Un 422 de FastAPI garde la liste des champs fautifs dans details."""
+    errors = [
+        {
+            "type": "less_than_equal",
+            "loc": ["query", "page_size"],
+            "msg": "Input should be less than or equal to 100",
+        }
+    ]
+    respx.get("http://example.test/x").respond(422, json={"detail": errors})
+    transport = HttpTransport("http://example.test")
+    with pytest.raises(GandalApiError) as caught:
+        transport.request("GET", "/x")
+    assert caught.value.code == "validation_error"
+    assert caught.value.details == errors
