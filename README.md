@@ -51,6 +51,47 @@ client.orchestration.vms.power(project_id, vms.items[0].id, PowerAction.START)
 client.orchestration.vms.delete(project_id, vms.items[0].id, confirm=True)
 ```
 
+## Identifiants, pagination et relances
+
+**Identifiants.** `GandalClient.from_env()` trouve l'endpoint et le jeton sans
+les ecrire dans le code, dans cet ordre : arguments, variables
+`GANDAL_ENDPOINT` / `GANDAL_TOKEN`, puis profil de `~/.gandal/credentials`
+(`GANDAL_PROFILE` pour en choisir un autre que `default`).
+
+```ini
+# ~/.gandal/credentials  (chmod 600)
+[default]
+endpoint = http://localhost:8000
+token = eyJhbGciOi...
+```
+
+```python
+client = GandalClient.from_env()              # profil default
+admin = GandalClient.from_env(profile="admin")
+```
+
+**Pagination.** `paginate` parcourt toutes les pages de n'importe quelle methode
+de liste, en chargeant les pages au fur et a mesure :
+
+```python
+from gandal_sdk import paginate
+
+for vm in paginate(client.orchestration.vms.list, project_id, state="running"):
+    print(vm.name)
+```
+
+**Relances.** Les `429`, et pour les requetes rejouables les `503` et erreurs
+reseau, sont relances automatiquement (3 tentatives, attente exponentielle,
+`Retry-After` respecte). Un `POST` n'est jamais rejoue sur `503` sans cle
+d'idempotence, pour ne pas creer de doublon. Reglage :
+
+```python
+from gandal_sdk import RetryPolicy
+
+client = GandalClient("http://localhost:8000", retry=RetryPolicy(max_attempts=5))
+client = GandalClient("http://localhost:8000", retry=RetryPolicy(max_attempts=1))  # aucune relance
+```
+
 ## Helpers typés disponibles (orchestration)
 
 | Acces | Couverture |
