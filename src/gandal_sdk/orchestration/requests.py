@@ -2,10 +2,17 @@
 
 from __future__ import annotations
 
+from typing import cast
+
 from gandal_sdk._http import HttpTransport
 from gandal_sdk.orchestration._util import drop_none, parse_page
 from gandal_sdk.orchestration.enums import RequestKind, RequestStatus
 from gandal_sdk.orchestration.models import Page, RequestDecisionIn, RequestOut
+from gandal_sdk.waiters import wait_for
+
+# Une decision humaine se compte en minutes : interroger moins souvent, plus longtemps.
+DECISION_DELAY = 15.0
+DECISION_MAX_ATTEMPTS = 240  # 1 heure
 
 
 class RequestsApi:
@@ -84,3 +91,35 @@ class RequestsApi:
             json=body.model_dump(),
         )
         return RequestOut.model_validate(data)
+
+    def wait_until_accepted(
+        self,
+        request_id: int,
+        *,
+        delay: float = DECISION_DELAY,
+        max_attempts: int = DECISION_MAX_ATTEMPTS,
+    ) -> RequestOut:
+        """Attend l'acceptation d'une demande par un administrateur.
+
+        Leve WaiterFailure si elle est refusee ou annulee. Pour une creation,
+        target_resource_id de la demande renvoyee designe la ressource creee.
+        """
+        request = wait_for(
+            lambda: self.get(request_id),
+            is_success=lambda req: req.status == RequestStatus.ACCEPTED,
+            failure_reason=_refusal_reason,
+            description=f"Demande {request_id}",
+            delay=delay,
+            max_attempts=max_attempts,
+            sleep=self._http.sleep,
+        )
+        # gone_is_success desactive : wait_for ne renvoie jamais GONE ici.
+        return cast(RequestOut, request)
+
+
+def _refusal_reason(request: RequestOut) -> str | None:
+    """Message d'echec pour une demande refusee ou annulee, None sinon."""
+    if request.status not in (RequestStatus.REFUSED, RequestStatus.CANCELLED):
+        return None
+    note = f" ({request.admin_note})" if request.admin_note else ""
+    return f"{request.status}{note}"

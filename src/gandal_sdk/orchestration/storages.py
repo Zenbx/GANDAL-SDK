@@ -16,6 +16,7 @@ from gandal_sdk.orchestration.models import (
     StorageOut,
     StorageUpdateRequestIn,
 )
+from gandal_sdk.waiters import DEFAULT_DELAY, DEFAULT_MAX_ATTEMPTS, wait_for
 
 
 class StoragesApi:
@@ -143,3 +144,22 @@ class StoragesApi:
             ),
         )
         return parse_page(data, ShareOut)
+
+    def wait_until_deleted(
+        self,
+        project_id: str,
+        storage_id: str,
+        *,
+        delay: float = DEFAULT_DELAY,
+        max_attempts: int = DEFAULT_MAX_ATTEMPTS,
+    ) -> None:
+        """Attend que le stockage ne soit plus visible (404)."""
+        wait_for(
+            lambda: self.get(project_id, storage_id),
+            is_success=lambda _: False,
+            gone_is_success=True,
+            description=f"Suppression du stockage {storage_id}",
+            delay=delay,
+            max_attempts=max_attempts,
+            sleep=self._http.sleep,
+        )
