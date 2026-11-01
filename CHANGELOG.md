@@ -4,6 +4,25 @@ Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/),
 versions selon [SemVer](https://semver.org/lang/fr/). Le détail de chaque
 version, migration comprise, est dans `docs/releases/`.
 
+## [Non publié]
+
+### Ajouté
+
+- `client.hypervisor` fonctionnel avec la cellule gandal-hypervisor : création,
+  modification, alimentation, suppression des VM du pool XCP-ng, opérations
+  (`wait_for_operation`), waiters (`wait_until_running/stopped/deleted`), `health()`.
+- `GandalClient(cell_urls=…, cell_tokens=…)` ; `from_env()` lit
+  `GANDAL_HYPERVISOR_ENDPOINT` / `GANDAL_HYPERVISOR_TOKEN` et les clés de profil
+  `hypervisor_endpoint` / `hypervisor_token`.
+- Instantané `openapi/gandal-hypervisor.json`, test de contrat de la cellule,
+  `scripts/run_hypervisor_integration.sh` (faux pool ou pool réel).
+
+### Modifié (incompatible)
+
+- `HypervisorCell.create_vm` renvoie `CreatedVm` (VM + opération) au lieu de
+  `VmRef` ; `update_vm`, `power` et `delete_vm` renvoient une `CellOperation`.
+  Ces méthodes levaient toutes `CellUnavailable` jusqu'ici.
+
 ## [0.3.0] - 2026-11-01
 
 Notes complètes : [docs/releases/v0.3.0.md](docs/releases/v0.3.0.md).
