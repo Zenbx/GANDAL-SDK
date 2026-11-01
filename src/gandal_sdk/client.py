@@ -9,6 +9,7 @@ from gandal_sdk.cells.iam import IamCell
 from gandal_sdk.cells.network import NetworkCell
 from gandal_sdk.cells.notifications import NotificationsCell
 from gandal_sdk.cells.storage import StorageCell
+from gandal_sdk.credentials import resolve_credentials
 from gandal_sdk.orchestration.api import OrchestrationApi
 from gandal_sdk.orchestration.auth import IdentityOut, TokenOut
 
@@ -38,6 +39,27 @@ class GandalClient:
         self.storage = StorageCell()
         self.dns = DnsCell()
         self.notifications = NotificationsCell()
+
+    @classmethod
+    def from_env(
+        cls,
+        *,
+        endpoint: str | None = None,
+        token: str | None = None,
+        profile: str | None = None,
+        timeout: float = 30.0,
+        retry: RetryPolicy | None = None,
+    ) -> GandalClient:
+        """Construit un client a partir de la chaine d'identifiants (gandal_sdk.credentials).
+
+        Les arguments explicites l'emportent sur GANDAL_ENDPOINT / GANDAL_TOKEN,
+        qui l'emportent sur le profil de ~/.gandal/credentials.
+        """
+        credentials = resolve_credentials(endpoint=endpoint, token=token, profile=profile)
+        client = cls(credentials.endpoint, timeout=timeout, retry=retry)
+        if credentials.token:
+            client.set_token(credentials.token)
+        return client
 
     def login(self, email: str, password: str) -> TokenOut:
         """Authentifie via l'orchestration et conserve le Bearer pour les appels suivants."""
