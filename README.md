@@ -153,8 +153,15 @@ Les methodes generiques `get/post/put/patch/delete` restent disponibles en echap
 ## Developpement
 
 ```bash
-pytest
+pytest                                                    # unitaires, sans reseau externe
+scripts/run_integration.sh ../iaas-api ../iaas-api/.venv/bin/python   # contre une vraie iaas-api
 ```
+
+Le second demarre iaas-api sur une base neuve (comptes de demonstration),
+lance `tests/integration`, puis l'arrete.
+
+Historique des versions : [CHANGELOG.md](CHANGELOG.md). Publier une version :
+[docs/RELEASING.md](docs/RELEASING.md).
 
 ## Contrat avec l'API
 
