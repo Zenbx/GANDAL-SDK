@@ -96,9 +96,7 @@ def _accepts(python_types: set[type], json_type: str) -> bool:
     MODEL_PAIRS,
     ids=[name for _, name, _ in MODEL_PAIRS],
 )
-def test_model_matches_schema(
-    sdk_model: type[BaseModel], schema_name: str, direction: str
-) -> None:
+def test_model_matches_schema(sdk_model: type[BaseModel], schema_name: str, direction: str) -> None:
     """Champs et types du SDK compatibles avec le schema publie par l'API."""
     schema = SCHEMAS[schema_name]
     properties: dict = schema.get("properties", {})
