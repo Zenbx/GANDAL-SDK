@@ -16,6 +16,11 @@ Exemple de fichier :
     [admin]
     endpoint = https://api.gandal.example
     token = eyJhbGciOi...
+    hypervisor_endpoint = http://127.0.0.1:8770
+    hypervisor_token = ...
+
+La cellule hyperviseur suit le meme ordre avec GANDAL_HYPERVISOR_ENDPOINT,
+GANDAL_HYPERVISOR_TOKEN et les cles hypervisor_endpoint / hypervisor_token.
 """
 
 from __future__ import annotations
@@ -37,6 +42,8 @@ class Credentials:
 
     endpoint: str
     token: str | None = field(default=None, repr=False)  # jamais affiche
+    hypervisor_endpoint: str | None = None
+    hypervisor_token: str | None = field(default=None, repr=False)
 
 
 def default_credentials_path(environ: Mapping[str, str] | None = None) -> Path:
@@ -85,4 +92,13 @@ def resolve_credentials(
             "ou renseigner endpoint dans ~/.gandal/credentials."
         )
     resolved_token = token or env.get("GANDAL_TOKEN") or file_values.get("token") or None
-    return Credentials(endpoint=resolved_endpoint, token=resolved_token)
+    return Credentials(
+        endpoint=resolved_endpoint,
+        token=resolved_token,
+        hypervisor_endpoint=env.get("GANDAL_HYPERVISOR_ENDPOINT")
+        or file_values.get("hypervisor_endpoint")
+        or None,
+        hypervisor_token=env.get("GANDAL_HYPERVISOR_TOKEN")
+        or file_values.get("hypervisor_token")
+        or None,
+    )

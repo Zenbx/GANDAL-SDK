@@ -91,3 +91,24 @@ def test_from_env_sends_resolved_token(creds_file: Path, monkeypatch: pytest.Mon
     with GandalClient.from_env(profile="admin") as client:
         client.orchestration.health()
     assert route.calls.last.request.headers["Authorization"] == "Bearer jeton-fichier-admin"
+
+
+@respx.mock
+def test_from_env_configures_hypervisor_cell(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """L'endpoint et le jeton de la cellule viennent du profil ; l'env les remplace."""
+    path = tmp_path / "credentials"
+    path.write_text(
+        "[default]\nendpoint = http://api.test\n"
+        "hypervisor_endpoint = http://cell-fichier.test\nhypervisor_token = jeton-fichier\n"
+    )
+    monkeypatch.setenv("GANDAL_CREDENTIALS_FILE", str(path))
+    for name in ("GANDAL_ENDPOINT", "GANDAL_TOKEN", "GANDAL_PROFILE", "GANDAL_HYPERVISOR_ENDPOINT"):
+        monkeypatch.delenv(name, raising=False)
+    monkeypatch.setenv("GANDAL_HYPERVISOR_TOKEN", "jeton-env")
+    route = respx.get("http://cell-fichier.test/v1/vms").respond(200, json={"items": []})
+    with GandalClient.from_env() as client:
+        assert client.hypervisor.list_vms() == []
+    assert route.calls.last.request.headers["Authorization"] == "Bearer jeton-env"
+    assert "jeton" not in repr(resolve_credentials(path=path, environ={}))

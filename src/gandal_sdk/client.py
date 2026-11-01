@@ -61,7 +61,18 @@ class GandalClient:
         qui l'emportent sur le profil de ~/.gandal/credentials.
         """
         credentials = resolve_credentials(endpoint=endpoint, token=token, profile=profile)
-        client = cls(credentials.endpoint, timeout=timeout, retry=retry)
+        cell_urls, cell_tokens = {}, {}
+        if credentials.hypervisor_endpoint:
+            cell_urls["hypervisor"] = credentials.hypervisor_endpoint
+            if credentials.hypervisor_token:
+                cell_tokens["hypervisor"] = credentials.hypervisor_token
+        client = cls(
+            credentials.endpoint,
+            timeout=timeout,
+            retry=retry,
+            cell_urls=cell_urls,
+            cell_tokens=cell_tokens,
+        )
         if credentials.token:
             client.set_token(credentials.token)
         return client
