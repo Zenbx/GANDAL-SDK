@@ -147,6 +147,11 @@ Côté SDK, des fonctions d'attente masquent l'interrogation :
 `client.orchestration.vms.wait_until_running(project_id, vm_id)`, qui lève une
 erreur explicite sur `failed` ou à l'expiration du délai.
 
+En attendant `/operations`, ces fonctions existent déjà et interrogent l'état
+de la ressource elle-même (`state` de `VMOut`, `404` après suppression,
+`status` de `RequestOut`). Le passage à `/operations` ne changera que leur
+fonctionnement interne, pas leur usage.
+
 ## 8. Pagination
 
 **Statut : en vigueur.**

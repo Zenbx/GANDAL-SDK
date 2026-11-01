@@ -92,6 +92,35 @@ client = GandalClient("http://localhost:8000", retry=RetryPolicy(max_attempts=5)
 client = GandalClient("http://localhost:8000", retry=RetryPolicy(max_attempts=1))  # aucune relance
 ```
 
+## Attendre qu'une ressource soit prete
+
+Les actions sur l'infrastructure prennent du temps. Les waiters interrogent la
+ressource jusqu'a l'etat voulu, et s'arretent tout de suite sur un etat dont
+elle ne sortira pas seule (`error`, ou `deleting` quand on attend `running`) :
+
+```python
+from gandal_sdk import WaiterFailure, WaiterTimeout
+
+request = client.orchestration.vms.request_create(project_id, VMCreateRequestIn(name="web-01", pack_id="pack-standard"))
+try:
+    accepted = client.orchestration.requests.wait_until_accepted(request.id)
+    vm = client.orchestration.vms.wait_until_running(project_id, accepted.target_resource_id)
+except WaiterFailure as err:      # refusee, annulee, VM en erreur...
+    print(err, err.last_value)
+except WaiterTimeout:
+    ...
+```
+
+| Waiter | Succes | Echec immediat | Defaut |
+| --- | --- | --- | --- |
+| `vms.wait_until_running` / `wait_until_stopped` | etat atteint | `error`, `deleting` | 5 s x 60 |
+| `vms.wait_until_deleted` | `404` | `error` | 5 s x 60 |
+| `storages.wait_until_deleted` | `404` | - | 5 s x 60 |
+| `requests.wait_until_accepted` | `accepted` | `refused`, `cancelled` | 15 s x 240 |
+
+`unknown` n'est jamais traite comme un succes. Chaque waiter accepte `delay=`
+et `max_attempts=`.
+
 ## Helpers typés disponibles (orchestration)
 
 | Acces | Couverture |
