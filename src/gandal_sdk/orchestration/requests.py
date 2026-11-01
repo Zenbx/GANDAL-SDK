@@ -42,12 +42,12 @@ class RequestsApi:
         )
         return parse_page(data, RequestOut)
 
-    def get(self, request_id: str) -> RequestOut:
+    def get(self, request_id: int) -> RequestOut:
         """Consulte une demande."""
         data = self._http.request("GET", f"/api/v1/requests/{request_id}")
         return RequestOut.model_validate(data)
 
-    def cancel(self, request_id: str) -> RequestOut:
+    def cancel(self, request_id: int) -> RequestOut:
         """Annule une demande en attente (auteur)."""
         data = self._http.request(
             "POST",
@@ -57,7 +57,7 @@ class RequestsApi:
 
     def accept(
         self,
-        request_id: str,
+        request_id: int,
         *,
         note: str | None = None,
     ) -> RequestOut:
@@ -72,7 +72,7 @@ class RequestsApi:
 
     def refuse(
         self,
-        request_id: str,
+        request_id: int,
         *,
         note: str | None = None,
     ) -> RequestOut:

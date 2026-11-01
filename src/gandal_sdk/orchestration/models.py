@@ -83,7 +83,7 @@ class ProjectMemberOut(BaseModel):
 
     user_id: str
     role: MembershipRole
-    profile_id: str | None
+    profile_id: int | None
     rights: list[str]
     joined_at: datetime
 
@@ -91,7 +91,7 @@ class ProjectMemberOut(BaseModel):
 class MemberRightsUpdateIn(BaseModel):
     """Modification des droits d'un invite."""
 
-    profile_id: str | None = None
+    profile_id: int | None = None
     additional_rights: list[str] | None = None
 
 
@@ -100,7 +100,7 @@ class InvitationCreateIn(BaseModel):
 
     invitee_id: str | None = None
     email: str | None = None
-    profile_id: str | None = None
+    profile_id: int | None = None
     additional_rights: list[str] = Field(default_factory=list)
 
     @model_validator(mode="after")
@@ -120,7 +120,7 @@ class InvitationOut(BaseModel):
     invitee_id: str
     invitee_email: str | None
     status: InvitationStatus
-    profile_id: str | None
+    profile_id: int | None
     additional_rights: list[str]
     created_at: datetime
     updated_at: datetime
@@ -279,7 +279,7 @@ class RequestDecisionIn(BaseModel):
 class RequestOut(BaseModel):
     """Demande telle que renvoyee par l'API."""
 
-    id: str
+    id: int
     project_id: str
     author_id: str
     kind: RequestKind
@@ -329,7 +329,7 @@ class RightOut(BaseModel):
 class ProfileOut(BaseModel):
     """Profil de droits."""
 
-    id: str
+    id: int
     name: str
     description: str
     rights: list[str]

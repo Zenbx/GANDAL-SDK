@@ -91,7 +91,7 @@ def test_vms_request_create_and_power() -> None:
     respx.post("http://example.test/api/v1/projects/prj-1/vms").respond(
         201,
         json={
-            "id": "req-1",
+            "id": 1,
             "project_id": "prj-1",
             "author_id": "u1",
             "kind": "vm_create",

@@ -48,7 +48,7 @@ class ProfilesApi:
         )
         return ProfileOut.model_validate(data)
 
-    def update(self, profile_id: str, body: ProfileUpdateIn) -> ProfileOut:
+    def update(self, profile_id: int, body: ProfileUpdateIn) -> ProfileOut:
         """Modifie un profil (administrateur)."""
         data = self._http.request(
             "PATCH",
@@ -57,6 +57,6 @@ class ProfilesApi:
         )
         return ProfileOut.model_validate(data)
 
-    def delete(self, profile_id: str) -> None:
+    def delete(self, profile_id: int) -> None:
         """Supprime un profil (administrateur)."""
         self._http.request("DELETE", f"/api/v1/admin/profiles/{profile_id}")

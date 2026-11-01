@@ -62,7 +62,7 @@ def test_packs_admin_create() -> None:
 def test_requests_accept() -> None:
     """accept renvoie RequestOut."""
     body = {
-        "id": "req-1",
+        "id": 1,
         "project_id": "prj-1",
         "author_id": "u1",
         "kind": "vm_create",
@@ -75,9 +75,9 @@ def test_requests_accept() -> None:
         "updated_at": "2026-01-01T00:00:00Z",
         "decided_at": "2026-01-01T01:00:00Z",
     }
-    respx.post("http://example.test/api/v1/requests/req-1/accept").respond(200, json=body)
+    respx.post("http://example.test/api/v1/requests/1/accept").respond(200, json=body)
     with GandalClient("http://example.test") as client:
-        req = client.orchestration.requests.accept("req-1", note="ok")
+        req = client.orchestration.requests.accept(1, note="ok")
         assert req.status.value == "accepted"
 
 
@@ -115,7 +115,7 @@ def test_profiles_list_rights_and_create() -> None:
     respx.post("http://example.test/api/v1/admin/profiles").respond(
         201,
         json={
-            "id": "prof-1",
+            "id": 1,
             "name": "Lecteur",
             "description": "",
             "rights": ["vm.view"],
@@ -127,7 +127,7 @@ def test_profiles_list_rights_and_create() -> None:
         profile = client.orchestration.profiles.create(
             ProfileCreateIn(name="Lecteur", rights=["vm.view"])
         )
-        assert profile.id == "prof-1"
+        assert profile.id == 1
 
 
 @respx.mock
