@@ -154,11 +154,13 @@ erreur explicite sur `failed` ou à l'expiration du délai.
 Pagination par numéro de page (`page`, `page_size` ≤ 100), enveloppe
 `items / page / page_size / total_items / total_pages`.
 
-Le SDK fournit un itérateur qui parcourt toutes les pages, pour que l'appelant
-n'ait pas à gérer les numéros :
+Le SDK fournit `paginate`, qui parcourt toutes les pages de n'importe quelle
+méthode de liste, pour que l'appelant n'ait pas à gérer les numéros :
 
 ```python
-for vm in client.orchestration.vms.iter_all(project_id):
+from gandal_sdk import paginate
+
+for vm in paginate(client.orchestration.vms.list, project_id, state="running"):
     ...
 ```
 
