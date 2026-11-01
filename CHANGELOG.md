@@ -34,7 +34,8 @@ Notes complètes : [docs/releases/v0.3.0.md](docs/releases/v0.3.0.md).
   `scripts/sync_openapi.py`.
 - Tests de contrat OpenAPI, tests d'intégration contre une vraie iaas-api
   (`scripts/run_integration.sh`), tests de relance sur de vraies sockets.
-- CI : Python 3.11 à 3.13, intégration, wheel installé, dérive OpenAPI quotidienne.
+- CI : Python 3.11 à 3.13, intégration, wheel installé, dérive OpenAPI quotidienne,
+  actions GitHub en versions Node 24.
 
 ### Corrigé
 
