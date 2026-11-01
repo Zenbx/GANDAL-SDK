@@ -16,8 +16,8 @@ jobs:
       matrix:
         python-version: ["3.11", "3.12", "3.13"]
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: ${{ matrix.python-version }}
       - run: pip install -e ".[dev]"
@@ -28,12 +28,12 @@ jobs:
   integration:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
+      - uses: actions/checkout@v7
         with:
           repository: GANDAL-BACKEND-IaaS/iaas-api
           path: iaas-api
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.11"
       - run: pip install -e ".[dev]" -r iaas-api/requirements.txt
@@ -44,8 +44,8 @@ jobs:
   package:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.11"
       - run: pip install build && python -m build
@@ -54,7 +54,7 @@ jobs:
           /tmp/wheelenv/bin/pip install dist/*.whl pytest pytest-asyncio respx
           /tmp/wheelenv/bin/python -m pytest -q -p no:cacheprovider -o pythonpath=
           /tmp/wheelenv/bin/python -c "import gandal_sdk, sys; assert 'site-packages' in gandal_sdk.__file__, gandal_sdk.__file__"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: dist
           path: dist/
@@ -64,12 +64,12 @@ jobs:
   openapi-drift:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
+      - uses: actions/checkout@v7
         with:
           repository: GANDAL-BACKEND-IaaS/iaas-api
           path: iaas-api
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.11"
       - run: pip install httpx -r iaas-api/requirements.txt
