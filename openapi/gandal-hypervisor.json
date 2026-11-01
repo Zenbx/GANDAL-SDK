@@ -84,8 +84,7 @@
             "type": "string"
           },
           "status": {
-            "$ref": "#/components/schemas/OperationStatus",
-            "default": "pending"
+            "$ref": "#/components/schemas/OperationStatus"
           },
           "updated_at": {
             "format": "date-time",
@@ -100,7 +99,11 @@
         "required": [
           "id",
           "action",
-          "vm_id"
+          "vm_id",
+          "status",
+          "error",
+          "created_at",
+          "updated_at"
         ],
         "title": "Operation",
         "type": "object"
