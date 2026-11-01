@@ -39,6 +39,26 @@ jobs:
       - run: pip install -e ".[dev]" -r iaas-api/requirements.txt
       - run: scripts/run_integration.sh iaas-api python
 
+  # Le wheel construit, installe seul dans un environnement vierge, passe les tests :
+  # aucun module ni fichier oublie a l'empaquetage.
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install build && python -m build
+      - run: |
+          python -m venv /tmp/wheelenv
+          /tmp/wheelenv/bin/pip install dist/*.whl pytest pytest-asyncio respx
+          /tmp/wheelenv/bin/python -m pytest -q -p no:cacheprovider -o pythonpath=
+          /tmp/wheelenv/bin/python -c "import gandal_sdk, sys; assert 'site-packages' in gandal_sdk.__file__, gandal_sdk.__file__"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
   # L'instantane openapi/iaas-api.json est-il encore celui de la branche main d'iaas-api ?
   # Un echec signale que l'API a change : relancer sync_openapi.py et ajuster le SDK.
   openapi-drift:
