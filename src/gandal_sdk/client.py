@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from gandal_sdk._http import HttpTransport
+from gandal_sdk._http import HttpTransport, RetryPolicy
 from gandal_sdk.cells.dns import DnsCell
 from gandal_sdk.cells.hypervisor import HypervisorCell
 from gandal_sdk.cells.iam import IamCell
@@ -21,14 +21,16 @@ class GandalClient:
         base_url: str,
         *,
         timeout: float = 30.0,
+        retry: RetryPolicy | None = None,
         cell_urls: dict[str, str] | None = None,
     ) -> None:
         """Initialise le transport d'orchestration et les sous-clients cellules.
 
+        retry regle les relances automatiques ; RetryPolicy(max_attempts=1) les desactive.
         cell_urls est reserve pour brancher plus tard des hosts distincts par cellule.
         """
         self._cell_urls = dict(cell_urls or {})
-        self._http = HttpTransport(base_url, timeout=timeout)
+        self._http = HttpTransport(base_url, timeout=timeout, retry=retry)
         self.orchestration = OrchestrationApi(self._http)
         self.iam = IamCell()
         self.hypervisor = HypervisorCell()
