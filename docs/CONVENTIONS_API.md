@@ -82,14 +82,21 @@ Ajouts proposés :
 
 **Statut : proposée.**
 
-Le SDK réessaie automatiquement, avec attente exponentielle et gigue :
+Le SDK réessaie automatiquement, avec attente exponentielle et gigue
+(3 tentatives par défaut) :
 
-| Réponse | Relance |
-|---|---|
-| `429 throttled` (nouveau code, à ajouter au catalogue), `503 upstream_unavailable` | oui, en respectant `Retry-After` |
-| erreur réseau ou délai dépassé sur `GET`, `PUT`, `DELETE` | oui |
-| erreur réseau sur `POST` ou `PATCH` | **seulement** avec une clé d'idempotence (§6) |
-| tout autre `4xx` | jamais |
+| Réponse | `GET`, `PUT`, `DELETE` | `POST`, `PATCH` |
+|---|---|---|
+| `429 throttled` (nouveau code, à ajouter au catalogue) | oui | oui : la requête a été refusée avant traitement |
+| `503 upstream_unavailable` | oui | **seulement** avec une clé d'idempotence (§6) |
+| erreur réseau ou délai dépassé | oui | **seulement** avec une clé d'idempotence (§6) |
+| tout autre `4xx` | jamais | jamais |
+
+`Retry-After` est respecté quand il est présent.
+
+Pourquoi cette prudence sur `503` : `API_ENDPOINTS.md` garantit qu'un `503`
+n'annonce aucun succès, mais pas qu'aucun effet externe n'a eu lieu. Rejouer
+un `POST` sans clé d'idempotence pourrait créer un doublon.
 
 ## 6. Idempotence
 
@@ -100,8 +107,10 @@ client). Le serveur mémorise la réponse pendant 24 h : une requête rejouée a
 la même clé et le même corps renvoie la même réponse sans recréer la ressource.
 Même clé avec un corps différent : `409 conflict`.
 
-Le SDK génère cette clé lui-même, ce qui rend sûres les relances de `POST`.
-C'est l'équivalent du `ClientToken` d'EC2.
+Quand le serveur la prendra en charge, le SDK générera cette clé lui-même, ce
+qui rendra sûres les relances de `POST`. C'est l'équivalent du `ClientToken`
+d'EC2. D'ici là, le SDK n'en envoie pas : un serveur qui ignore la clé
+transformerait chaque relance en doublon.
 
 ## 7. Opérations longues
 
