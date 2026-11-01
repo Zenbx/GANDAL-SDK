@@ -85,3 +85,20 @@ Les methodes generiques `get/post/put/patch/delete` restent disponibles en echap
 ```bash
 pytest
 ```
+
+## Contrat avec l'API
+
+Les regles communes aux services (erreurs, relances, idempotence, operations
+longues, identifiants) sont dans [docs/CONVENTIONS_API.md](docs/CONVENTIONS_API.md).
+
+`openapi/iaas-api.json` est un instantane de l'OpenAPI publiee par `iaas-api`.
+`tests/test_contract_openapi.py` verifie que les modeles du SDK lisent et
+envoient ce que l'API attend, et que chaque route publiee a son helper.
+La CI compare chaque jour l'instantane a la branche `main` d'`iaas-api`.
+
+Quand l'API change :
+
+```bash
+python scripts/sync_openapi.py --app-dir ../iaas-api   # ou --url http://localhost:8000
+pytest tests/test_contract_openapi.py
+```
