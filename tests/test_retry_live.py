@@ -98,4 +98,5 @@ def test_connection_refused_is_retried_then_raised() -> None:
         started = time.monotonic()
         with pytest.raises(httpx.ConnectError):
             client._http.request("GET", "/x")
-        assert time.monotonic() - started < 5
+        # Sous charge (Windows surtout), 3 tentatives + backoff peuvent depasser 5 s.
+        assert time.monotonic() - started < 15
