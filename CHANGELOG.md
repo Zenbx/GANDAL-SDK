@@ -6,6 +6,10 @@ version, migration comprise, est dans `docs/releases/`.
 
 ## [Non publié]
 
+## [0.4.0] - 2026-11-02
+
+Notes complètes : [docs/releases/v0.4.0.md](docs/releases/v0.4.0.md).
+
 ### Ajouté
 
 - `client.hypervisor` fonctionnel avec la cellule gandal-hypervisor : création,
@@ -16,6 +20,9 @@ version, migration comprise, est dans `docs/releases/`.
   `hypervisor_endpoint` / `hypervisor_token`.
 - Instantané `openapi/gandal-hypervisor.json`, test de contrat de la cellule,
   `scripts/run_hypervisor_integration.sh` (faux pool ou pool réel).
+- `scripts/run_hypervisor_integration.ps1` et `GANDAL_IT_SSD_GB` pour les tests
+  d'intégration sous Windows / modèle à grand disque.
+- Validation sur le pool XCP-ng réel (2026-11-02) : 7 tests d'intégration verts.
 
 ### Modifié (incompatible)
 
@@ -79,6 +86,7 @@ Notes complètes : [docs/releases/v0.3.0.md](docs/releases/v0.3.0.md).
 - Squelette du SDK : `GandalClient`, transport HTTP, `GandalApiError`, stubs des
   cellules IAM, hyperviseur, réseau, stockage, DNS et notifications.
 
+[0.4.0]: https://github.com/Zenbx/GANDAL-SDK/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/Zenbx/GANDAL-SDK/compare/e4d93b9...v0.3.0
 [0.2.0]: https://github.com/Zenbx/GANDAL-SDK/commit/e4d93b9
 [0.1.0]: https://github.com/Zenbx/GANDAL-SDK/commit/059e98a

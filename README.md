@@ -156,6 +156,9 @@ de la cellule) :
 
 ```bash
 scripts/run_hypervisor_integration.sh ../gandal-hypervisor
+# Windows :
+# $env:GANDAL_HV_FAKE='0'; $env:GANDAL_IT_SSD_GB='25'; $env:GANDAL_IT_DELAY='5'
+# .\scripts\run_hypervisor_integration.ps1 ..\gandal-hypervisor
 ```
 
 ## Helpers typés disponibles (orchestration)
@@ -181,7 +184,7 @@ Les methodes generiques `get/post/put/patch/delete` restent disponibles en echap
 | --- | --- |
 | `client.orchestration` | Disponible (helpers typés `/api/v1`) |
 | `client.iam` | Stub - en attente de l'API cellule |
-| `client.hypervisor` | Disponible avec la cellule gandal-hypervisor |
+| `client.hypervisor` | Disponible ; valide contre faux pool et pool XCP-ng reel (bac a sable) |
 | `client.network` | Stub - en attente de l'API cellule |
 | `client.storage` | Stub - en attente de l'API cellule |
 | `client.dns` | Stub - en attente de l'API cellule |

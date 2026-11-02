@@ -29,13 +29,12 @@ et une VM est clonée, configurée et démarrée sur le pool.
 
 | Maillon | État |
 | --- | --- |
-| SDK Python (GANDAL-SDK) | v0.3.0 publiée ; client hyperviseur poussé sur `main`, pas encore publié |
-| Cellule hyperviseur (gandal-hypervisor) | complète et testée **contre un faux pool** ; jamais lancée sur le vrai |
-| Pool XCP-ng réel | pas encore touché par la cellule |
+| SDK Python (GANDAL-SDK) | v0.4.0 : hyperviseur publié ; validé faux pool + pool réel (2026-11-02) |
+| Cellule hyperviseur (gandal-hypervisor) | complète ; testée faux pool **et** pool réel (bac à sable) |
+| Pool XCP-ng réel | premier passage SDK réussi ; snapshot homonyme renommé `gandal-reference-snap` |
 | iaas-api (équipe backend) | publie seulement l'authentification et les profils ; pas encore branché à la cellule |
 
-**La prochaine étape est le premier passage sur le pool réel (§5).** Tout le reste
-en dépend.
+**Prochaine priorité :** publier / consolider (§6), puis R1, ops persistantes, CI cellule.
 
 ## 3. Les dépôts
 
