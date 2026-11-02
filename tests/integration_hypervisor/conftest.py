@@ -21,6 +21,8 @@ TOKEN = os.environ.get("GANDAL_IT_HYPERVISOR_TOKEN")
 # Pool reel : un clonage XOSTOR prend des minutes ; faux pool : quelques millisecondes.
 DELAY = float(os.environ.get("GANDAL_IT_DELAY", "0.2"))
 MAX_ATTEMPTS = int(os.environ.get("GANDAL_IT_MAX_ATTEMPTS", "300"))
+# Faux pool : 10 Go. Pool reel (modele gandal-reference) : disque systeme plus grand.
+SSD_GB = int(os.environ.get("GANDAL_IT_SSD_GB", "10"))
 PREFIX = "sdk-it-"
 
 

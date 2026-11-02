@@ -6,11 +6,11 @@ from gandal_sdk import GandalApiError
 from gandal_sdk.cells.hypervisor import HypervisorCell, OperationStatus, PowerAction, VmSpec
 from gandal_sdk.orchestration.enums import VmState
 
-from .conftest import PREFIX, WAIT
+from .conftest import PREFIX, SSD_GB, WAIT
 
 
 def _spec(default_name: str, **overrides) -> VmSpec:
-    values = {"name": default_name, "ram_gb": 1, "vcpu": 1, "vram_gb": 0, "ssd_gb": 10}
+    values = {"name": default_name, "ram_gb": 1, "vcpu": 1, "vram_gb": 0, "ssd_gb": SSD_GB}
     return VmSpec(**{**values, **overrides})
 
 
