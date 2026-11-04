@@ -112,3 +112,19 @@ def test_from_env_configures_hypervisor_cell(
         assert client.hypervisor.list_vms() == []
     assert route.calls.last.request.headers["Authorization"] == "Bearer jeton-env"
     assert "jeton" not in repr(resolve_credentials(path=path, environ={}))
+
+
+def test_iam_credentials_from_env_and_file(tmp_path: Path) -> None:
+    """IAM suit le meme ordre : env > fichier, jeton jamais dans repr."""
+    path = tmp_path / "credentials"
+    path.write_text(
+        "[default]\nendpoint = http://api.test\n"
+        "iam_endpoint = https://iam.fichier/v1\niam_token = secret-iam\n"
+        "iam_ca = ~/ca.crt\n"
+    )
+    env = {"GANDAL_IAM_ENDPOINT": "https://iam.env/v1"}
+    creds = resolve_credentials(path=path, environ=env)
+    assert creds.iam_endpoint == "https://iam.env/v1"
+    assert creds.iam_token == "secret-iam"
+    assert creds.iam_ca.endswith("ca.crt")
+    assert "secret-iam" not in repr(creds)

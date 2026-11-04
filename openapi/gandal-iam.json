@@ -1,0 +1,4871 @@
+{
+  "components": {
+    "parameters": {
+      "CleIdempotence": {
+        "description": "Rejouer le même appel avec la même clé rend le **même** résultat sans\nrien refaire. Obligatoire sur tout appel qui modifie l'état : c'est\nce qui rend une reprise après panne sûre.\n",
+        "in": "header",
+        "name": "Idempotency-Key",
+        "required": true,
+        "schema": {
+          "maxLength": 128,
+          "minLength": 8,
+          "type": "string"
+        }
+      },
+      "CorrelationId": {
+        "description": "Numéro de suivi fourni par l'appelant ; généré par IAM s'il est\nabsent, et toujours rendu. **Obligatoire dans vos journaux** : c'est\nle seul fil qui relie une action de la plateforme à une décision\nd'IAM et à une ligne d'audit.\n",
+        "in": "header",
+        "name": "X-Gandal-Correlation-Id",
+        "required": false,
+        "schema": {
+          "$ref": "#/components/schemas/CorrelationId"
+        }
+      },
+      "Curseur": {
+        "in": "query",
+        "name": "curseur",
+        "schema": {
+          "type": "string"
+        }
+      },
+      "IdProjet": {
+        "in": "path",
+        "name": "idProjet",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      },
+      "IdReservation": {
+        "in": "path",
+        "name": "idReservation",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      },
+      "IdSujet": {
+        "in": "path",
+        "name": "idSujet",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      },
+      "Taille": {
+        "in": "query",
+        "name": "taille",
+        "schema": {
+          "default": 50,
+          "maximum": 200,
+          "minimum": 1,
+          "type": "integer"
+        }
+      }
+    },
+    "responses": {
+      "ContratInvalide": {
+        "content": {
+          "application/problem+json": {
+            "schema": {
+              "$ref": "#/components/schemas/Probleme"
+            }
+          }
+        },
+        "description": "Le corps ne respecte pas le contrat. **Aucun champ inconnu n'est\naccepté** : une faute de frappe est une erreur, pas un champ ignoré.\n"
+      },
+      "Indisponible": {
+        "content": {
+          "application/problem+json": {
+            "schema": {
+              "$ref": "#/components/schemas/Probleme"
+            }
+          }
+        },
+        "description": "IAM ne peut pas décider. **L'appelant refuse l'action** — il\nn'autorise jamais par défaut.\n"
+      },
+      "Interdit": {
+        "content": {
+          "application/problem+json": {
+            "schema": {
+              "$ref": "#/components/schemas/Probleme"
+            }
+          }
+        },
+        "description": "Authentifié, mais le droit manque."
+      },
+      "Introuvable": {
+        "content": {
+          "application/problem+json": {
+            "schema": {
+              "$ref": "#/components/schemas/Probleme"
+            }
+          }
+        },
+        "description": "Objet inexistant, ou invisible pour cet appelant."
+      },
+      "NonAuthentifie": {
+        "content": {
+          "application/problem+json": {
+            "schema": {
+              "$ref": "#/components/schemas/Probleme"
+            }
+          }
+        },
+        "description": "Jeton absent, expiré, mal signé, ou audience incorrecte."
+      }
+    },
+    "schemas": {
+      "Action": {
+        "properties": {
+          "capacites": {
+            "description": "Capacités suffisantes dans le projet. Vide, l'action ne porte pas sur un projet.",
+            "items": {
+              "$ref": "#/components/schemas/Capacite"
+            },
+            "type": "array"
+          },
+          "cellule": {
+            "example": "S1",
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "nom": {
+            "example": "vm:create",
+            "type": "string"
+          },
+          "roles": {
+            "items": {
+              "enum": [
+                "user",
+                "admin"
+              ],
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "second_facteur": {
+            "default": false,
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "nom",
+          "cellule",
+          "roles"
+        ],
+        "type": "object"
+      },
+      "Agregats": {
+        "properties": {
+          "correlation_id": {
+            "$ref": "#/components/schemas/CorrelationId"
+          },
+          "lignes": {
+            "items": {
+              "$ref": "#/components/schemas/LigneAgregat"
+            },
+            "type": "array"
+          },
+          "mesure_le": {
+            "description": "Date de la mesure de capacité. **Une mesure vieille ne vaut rien.**",
+            "format": "date-time",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "plan": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "lignes",
+          "correlation_id"
+        ],
+        "type": "object"
+      },
+      "AttachementEntree": {
+        "additionalProperties": false,
+        "properties": {
+          "cible": {
+            "description": "Vide pour « organisation ».",
+            "type": "string"
+          },
+          "cible_type": {
+            "enum": [
+              "sujet",
+              "role",
+              "projet",
+              "organisation"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "cible_type"
+        ],
+        "type": "object"
+      },
+      "AttributsEntree": {
+        "additionalProperties": false,
+        "properties": {
+          "attributs": {
+            "additionalProperties": {
+              "maxLength": 128,
+              "type": "string"
+            },
+            "type": "object"
+          },
+          "motif": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "attributs"
+        ],
+        "type": "object"
+      },
+      "Capacite": {
+        "description": "Position dans un projet — **pas un rôle de compte**. `proprietaire`\ngère les membres ; `contributeur` crée et pilote ; `lecteur` regarde.\n",
+        "enum": [
+          "proprietaire",
+          "contributeur",
+          "lecteur"
+        ],
+        "type": "string"
+      },
+      "CleEntree": {
+        "additionalProperties": false,
+        "properties": {
+          "description": {
+            "type": "string"
+          },
+          "sujet": {
+            "description": "Un autre compte : `admin` seulement.",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "CleStatut": {
+        "additionalProperties": false,
+        "properties": {
+          "statut": {
+            "enum": [
+              "active",
+              "inactive"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "statut"
+        ],
+        "type": "object"
+      },
+      "CorrelationId": {
+        "description": "ULID, 26 caractères.",
+        "example": "01JB9X2K7M4Q8V0ZC3N5T6R7W8",
+        "pattern": "^[0-9A-HJKMNP-TV-Z]{26}$",
+        "type": "string"
+      },
+      "Decision": {
+        "properties": {
+          "correlation_id": {
+            "$ref": "#/components/schemas/CorrelationId"
+          },
+          "decision": {
+            "enum": [
+              "permit",
+              "deny"
+            ],
+            "type": "string"
+          },
+          "explication": {
+            "description": "Phrase lisible, pour l'utilisateur. Jamais analysée par le code.",
+            "type": "string"
+          },
+          "motif": {
+            "description": "Code stable, destiné au code appelant.",
+            "enum": [
+              "proprietaire",
+              "capacite_projet",
+              "role",
+              "acces_concede",
+              "quota_depasse",
+              "contexte_manquant",
+              "unknown_action",
+              "second_facteur_requis",
+              "compte_revoque",
+              "role_expire",
+              "auto_attribution",
+              "elevation_interdite",
+              "refus_par_defaut",
+              "politique",
+              "politique_porte_passante",
+              "politique_refus_explicite",
+              "politique_hors_frontiere",
+              "politique_hors_organisation",
+              "politique_hors_session",
+              "politique_illisible"
+            ],
+            "type": "string"
+          },
+          "obligations": {
+            "description": "Ce que l'appelant DOIT faire s'il applique un `permit`.",
+            "items": {
+              "properties": {
+                "type": {
+                  "enum": [
+                    "journaliser",
+                    "notifier",
+                    "expirer_a",
+                    "reserver_quota"
+                  ],
+                  "type": "string"
+                },
+                "valeur": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "type"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "regle": {
+            "example": "Q-001",
+            "type": "string"
+          },
+          "valide_jusqu_a": {
+            "description": "**Ne pas mettre en cache au-delà.**",
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "decision",
+          "motif",
+          "valide_jusqu_a",
+          "correlation_id"
+        ],
+        "type": "object"
+      },
+      "DemandeAcces": {
+        "properties": {
+          "capacite": {
+            "$ref": "#/components/schemas/Capacite"
+          },
+          "correlation_id": {
+            "$ref": "#/components/schemas/CorrelationId"
+          },
+          "decide_le": {
+            "format": "date-time",
+            "readOnly": true,
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "decide_par": {
+            "readOnly": true,
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "demandeur": {
+            "type": "string"
+          },
+          "etat": {
+            "enum": [
+              "en_attente",
+              "approuvee",
+              "refusee",
+              "expiree"
+            ],
+            "type": "string"
+          },
+          "expire_a": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "fin_a": {
+            "format": "date-time",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "id": {
+            "type": "string"
+          },
+          "motif": {
+            "type": "string"
+          },
+          "motif_decision": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "projet": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "projet",
+          "demandeur",
+          "capacite",
+          "etat"
+        ],
+        "type": "object"
+      },
+      "DemandeAssomption": {
+        "additionalProperties": false,
+        "properties": {
+          "duree_s": {
+            "description": "900 au moins ; plafonnée par le rôle et, en chaînage, par la session parente.",
+            "type": "integer"
+          },
+          "id_externe": {
+            "description": "Contre le « mandataire abusé » : fourni à `sts:id_externe`.",
+            "type": "string"
+          },
+          "nom_session": {
+            "description": "Ce que le journal montrera.",
+            "pattern": "^[A-Za-z0-9=,.@_-]{2,64}$",
+            "type": "string"
+          },
+          "politique_session": {
+            "description": "Ne peut que RETIRER : une porte de plus, jamais un accord.",
+            "type": "object"
+          },
+          "role": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "role",
+          "nom_session"
+        ],
+        "type": "object"
+      },
+      "DemandeDecision": {
+        "properties": {
+          "action": {
+            "example": "vm:create",
+            "pattern": "^[a-z][a-z0-9-]*(:[a-z][a-z0-9-]*){1,3}$",
+            "type": "string"
+          },
+          "contexte": {
+            "additionalProperties": true,
+            "description": "Faits que la décision peut exiger — taille demandée, fenêtre de\nmaintenance, environnement. **Un champ exigé et absent donne un\nrefus** (`contexte_manquant`), jamais un accord.\n",
+            "type": "object"
+          },
+          "ressource": {
+            "properties": {
+              "id": {
+                "example": "salle-01",
+                "type": "string"
+              },
+              "projet": {
+                "description": "**C'est lui qui porte la portée.** La capacité du demandeur\ndans ce projet décide, pas son rôle de compte.\n",
+                "type": "string"
+              },
+              "proprietaire": {
+                "description": "Propriétaire de la ressource, s'il n'y a pas de projet.",
+                "type": "string"
+              },
+              "type": {
+                "example": "vm",
+                "type": "string"
+              }
+            },
+            "required": [
+              "type"
+            ],
+            "type": "object"
+          },
+          "sujet_delegue": {
+            "description": "Agir au nom d'un tiers. Exige un droit explicite ; tracé.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "action",
+          "ressource"
+        ],
+        "type": "object"
+      },
+      "DemandeEngendrer": {
+        "additionalProperties": false,
+        "properties": {
+          "essai": {
+            "default": false,
+            "type": "boolean"
+          }
+        },
+        "type": "object"
+      },
+      "DemandeSimulation": {
+        "additionalProperties": false,
+        "properties": {
+          "action": {
+            "type": "string"
+          },
+          "contexte": {
+            "type": "object"
+          },
+          "ressource": {
+            "type": "object"
+          },
+          "sujet_delegue": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "action"
+        ],
+        "type": "object"
+      },
+      "DroitEntree": {
+        "additionalProperties": false,
+        "properties": {
+          "capacite": {
+            "enum": [
+              "contributeur",
+              "lecteur"
+            ],
+            "type": "string"
+          },
+          "cible": {
+            "description": "Pour un attribut : cle=valeur.",
+            "type": "string"
+          },
+          "cible_type": {
+            "enum": [
+              "sujet",
+              "groupe",
+              "attribut"
+            ],
+            "type": "string"
+          },
+          "fin_a": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "motif": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "cible_type",
+          "cible",
+          "capacite"
+        ],
+        "type": "object"
+      },
+      "EvenementAudit": {
+        "properties": {
+          "action": {
+            "type": "string"
+          },
+          "adresse_appelant": {
+            "description": "**Sans elle, aucune enquête n'est possible.**",
+            "type": "string"
+          },
+          "auteur": {
+            "description": "Compte, jamais un compte technique partagé.",
+            "type": "string"
+          },
+          "correlation_id": {
+            "$ref": "#/components/schemas/CorrelationId"
+          },
+          "horodatage": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "motif": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "projet": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "ressource": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "resultat": {
+            "enum": [
+              "permit",
+              "deny",
+              "succes",
+              "echec"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "horodatage",
+          "auteur",
+          "action",
+          "resultat",
+          "correlation_id"
+        ],
+        "type": "object"
+      },
+      "LigneAgregat": {
+        "properties": {
+          "consomme": {
+            "description": "Réellement utilisé.",
+            "type": "integer"
+          },
+          "disponible": {
+            "description": "Capacité physique, **mesurée par la plateforme et transmise à\nIAM**. `null` si aucune mesure n'a été reçue — et dans ce cas le\nratio est inconnu, pas bon.\n",
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "engage": {
+            "description": "Somme des limites accordées. Ce que la plateforme s'est engagée à pouvoir fournir.",
+            "type": "integer"
+          },
+          "nature": {
+            "enum": [
+              "stock",
+              "periode"
+            ],
+            "type": "string"
+          },
+          "ratio_engagement": {
+            "description": "`engage / disponible`. `null` si `disponible` est inconnu.",
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "reserve": {
+            "type": "integer"
+          },
+          "ressource": {
+            "example": "ram_gb",
+            "type": "string"
+          },
+          "sujets": {
+            "description": "Nombre de comptes concernés.",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "ressource",
+          "nature",
+          "engage",
+          "consomme"
+        ],
+        "type": "object"
+      },
+      "LigneQuota": {
+        "properties": {
+          "consomme": {
+            "type": "integer"
+          },
+          "limite": {
+            "description": "`-1` signifie illimité.",
+            "type": "integer"
+          },
+          "nature": {
+            "description": "`stock` : occupé tant que la ressource existe.\n`periode` : se consomme au fil du temps, remis à zéro à l'échéance.\n",
+            "enum": [
+              "stock",
+              "periode"
+            ],
+            "type": "string"
+          },
+          "remise_a_zero_a": {
+            "description": "Pour les quotas de période.",
+            "format": "date-time",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "reserve": {
+            "description": "Mis de côté par des réservations en cours.",
+            "type": "integer"
+          },
+          "ressource": {
+            "example": "vm_count",
+            "type": "string"
+          },
+          "restant": {
+            "description": "`limite − consomme − reserve`.",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "ressource",
+          "nature",
+          "limite",
+          "consomme",
+          "reserve",
+          "restant"
+        ],
+        "type": "object"
+      },
+      "MachineEntree": {
+        "additionalProperties": false,
+        "properties": {
+          "description": {
+            "type": "string"
+          },
+          "nom": {
+            "pattern": "^[a-z0-9][a-z0-9-]{1,40}$",
+            "type": "string"
+          }
+        },
+        "required": [
+          "nom"
+        ],
+        "type": "object"
+      },
+      "Membre": {
+        "properties": {
+          "capacite": {
+            "$ref": "#/components/schemas/Capacite"
+          },
+          "fin_a": {
+            "format": "date-time",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "identifiant": {
+            "type": "string"
+          },
+          "invite_le": {
+            "format": "date-time",
+            "readOnly": true,
+            "type": "string"
+          },
+          "invite_par": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "sujet": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "sujet",
+          "capacite"
+        ],
+        "type": "object"
+      },
+      "MembreNouveau": {
+        "additionalProperties": false,
+        "properties": {
+          "capacite": {
+            "default": "contributeur",
+            "enum": [
+              "contributeur",
+              "lecteur"
+            ],
+            "type": "string"
+          },
+          "courriel": {
+            "type": "string"
+          },
+          "expire_a": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "externe": {
+            "default": false,
+            "type": "boolean"
+          },
+          "fin_a": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "identifiant": {
+            "type": "string"
+          },
+          "motif": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "identifiant",
+          "courriel"
+        ],
+        "type": "object"
+      },
+      "PolitiqueEntree": {
+        "additionalProperties": false,
+        "properties": {
+          "description": {
+            "type": "string"
+          },
+          "document": {
+            "description": "Version 2026-11-01. Grammaire : iam/decision-service/README.md.",
+            "type": "object"
+          },
+          "genre": {
+            "default": "identite",
+            "enum": [
+              "identite",
+              "ressource",
+              "frontiere",
+              "session",
+              "organisation"
+            ],
+            "type": "string"
+          },
+          "nom": {
+            "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+            "type": "string"
+          }
+        },
+        "required": [
+          "nom",
+          "document"
+        ],
+        "type": "object"
+      },
+      "Probleme": {
+        "description": "RFC 9457, `application/problem+json`.",
+        "properties": {
+          "correlation_id": {
+            "$ref": "#/components/schemas/CorrelationId"
+          },
+          "detail": {
+            "type": "string"
+          },
+          "status": {
+            "type": "integer"
+          },
+          "title": {
+            "type": "string"
+          },
+          "type": {
+            "format": "uri",
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "title",
+          "status",
+          "correlation_id"
+        ],
+        "type": "object"
+      },
+      "Projet": {
+        "properties": {
+          "correlation_id": {
+            "$ref": "#/components/schemas/CorrelationId"
+          },
+          "cree_le": {
+            "format": "date-time",
+            "readOnly": true,
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "environnement": {
+            "enum": [
+              "developpement",
+              "production"
+            ],
+            "type": "string"
+          },
+          "etat": {
+            "enum": [
+              "actif",
+              "archive"
+            ],
+            "type": "string"
+          },
+          "id": {
+            "example": "prj_01JB9X2K7M",
+            "type": "string"
+          },
+          "membres": {
+            "items": {
+              "$ref": "#/components/schemas/Membre"
+            },
+            "type": "array"
+          },
+          "nom": {
+            "example": "tp-reseau-gi27",
+            "type": "string"
+          },
+          "plan": {
+            "type": "string"
+          },
+          "proprietaire": {
+            "type": "string"
+          },
+          "quotas": {
+            "$ref": "#/components/schemas/Quotas"
+          }
+        },
+        "required": [
+          "id",
+          "nom",
+          "proprietaire",
+          "etat"
+        ],
+        "type": "object"
+      },
+      "Proposition": {
+        "properties": {
+          "auteur": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "changements": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "type": "object"
+          },
+          "correlation_id": {
+            "$ref": "#/components/schemas/CorrelationId"
+          },
+          "decide_le": {
+            "format": "date-time",
+            "readOnly": true,
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "decide_par": {
+            "readOnly": true,
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "effet_a": {
+            "format": "date-time",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "etat": {
+            "enum": [
+              "en_attente",
+              "appliquee",
+              "refusee"
+            ],
+            "type": "string"
+          },
+          "id": {
+            "example": "prop_01JB9X2K7M",
+            "type": "string"
+          },
+          "justification": {
+            "type": "string"
+          },
+          "limites_actuelles": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "readOnly": true,
+            "type": "object"
+          },
+          "plan": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "plan",
+          "changements",
+          "etat",
+          "justification"
+        ],
+        "type": "object"
+      },
+      "Quotas": {
+        "properties": {
+          "correlation_id": {
+            "$ref": "#/components/schemas/CorrelationId"
+          },
+          "derogation_jusqu_a": {
+            "format": "date-time",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "limites": {
+            "items": {
+              "$ref": "#/components/schemas/LigneQuota"
+            },
+            "type": "array"
+          },
+          "plan": {
+            "type": "string"
+          },
+          "portee": {
+            "enum": [
+              "compte",
+              "projet"
+            ],
+            "type": "string"
+          },
+          "projet": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "sujet": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "portee",
+          "limites",
+          "correlation_id"
+        ],
+        "type": "object"
+      },
+      "Reservation": {
+        "properties": {
+          "correlation_id": {
+            "$ref": "#/components/schemas/CorrelationId"
+          },
+          "etat": {
+            "enum": [
+              "reservee",
+              "confirmee",
+              "liberee",
+              "expiree"
+            ],
+            "type": "string"
+          },
+          "expire_a": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "id": {
+            "example": "res_01JB9X2K7M",
+            "type": "string"
+          },
+          "projet": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "ressource_id": {
+            "description": "Rempli à la confirmation.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "ressources": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "type": "object"
+          },
+          "sujet": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "sujet",
+          "etat",
+          "expire_a",
+          "ressources",
+          "correlation_id"
+        ],
+        "type": "object"
+      },
+      "RoleAttribue": {
+        "properties": {
+          "accorde_le": {
+            "format": "date-time",
+            "readOnly": true,
+            "type": "string"
+          },
+          "accorde_par": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "debut_a": {
+            "format": "date-time",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "fin_a": {
+            "description": "**Au-delà, le rôle ne compte plus pour les décisions**, même si\nla projection dans l'IdP n'est pas encore nettoyée (règle 031).\n",
+            "format": "date-time",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "nom": {
+            "enum": [
+              "user",
+              "admin"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "nom"
+        ],
+        "type": "object"
+      },
+      "RoleEntree": {
+        "additionalProperties": false,
+        "properties": {
+          "confiance": {
+            "description": "Politique de confiance : `Principal` obligatoire, n accorde que `sts:assume-role`.",
+            "type": "object"
+          },
+          "description": {
+            "type": "string"
+          },
+          "duree_max_s": {
+            "default": 3600,
+            "maximum": 43200,
+            "minimum": 900,
+            "type": "integer"
+          },
+          "frontiere": {
+            "description": "Nom d une politique de genre `frontiere`.",
+            "type": "string"
+          },
+          "nom": {
+            "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+            "type": "string"
+          }
+        },
+        "required": [
+          "nom",
+          "confiance"
+        ],
+        "type": "object"
+      },
+      "Sujet": {
+        "properties": {
+          "actif": {
+            "default": true,
+            "type": "boolean"
+          },
+          "attributs": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Attributs **effectifs**, résolus dans cet ordre, **le plus\nspécifique gagnant** :\n\n```\nrole  ->  groupe  ->  compte\n```\n\nLe rôle pose le plancher (`user` : zéro de tout), le **groupe**\nporte le plan de la promotion, et le **compte** porte les\ndérogations. Une dérogation n'altère donc jamais le plan du\ngroupe.\n\nValeurs en chaînes ; `-1` signifie illimité.\n",
+            "type": "object"
+          },
+          "correlation_id": {
+            "$ref": "#/components/schemas/CorrelationId"
+          },
+          "courriel": {
+            "format": "email",
+            "type": "string"
+          },
+          "expire_a": {
+            "format": "date-time",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "externe": {
+            "default": false,
+            "type": "boolean"
+          },
+          "groupes": {
+            "description": "Groupes porteurs de plan, par exemple `promotion-gi27`. C'est là\nque vit le plan par défaut d'une promotion.\n",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "id": {
+            "type": "string"
+          },
+          "identifiant": {
+            "example": "etu-gi27-042",
+            "type": "string"
+          },
+          "roles": {
+            "items": {
+              "$ref": "#/components/schemas/RoleAttribue"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "id",
+          "roles",
+          "attributs",
+          "correlation_id"
+        ],
+        "type": "object"
+      }
+    },
+    "securitySchemes": {
+      "jetonPorteur": {
+        "bearerFormat": "JWT",
+        "description": "Jeton d'accès OIDC du realm `gandal`, durée 900 s. **Vérifié\nlocalement avant tout usage** : signature contre le JWKS, `iss`,\n`aud`, `exp`, `azp`.\n\n**`aud` doit contenir l'identifiant du service**, `gandal-iam`. Si vos\njetons portent `aud: account` et rien d'autre, le realm n'a pas ses\nserveurs de ressources : rejouer `iam/keycloak/10-realm-gandal.sh`.\n\n**`iss` doit être exact, et c'est un piège.** Le realm porte\n`hostname-strict=false`, donc Keycloak **recopie l'en-tête `Host`**\ndans l'`issuer` : un jeton obtenu par `localhost` annonce\n`https://localhost:8443/realms/gandal`, le même obtenu par l'adresse\nannonce `https://10.30.0.30:8443/realms/gandal`. Les deux sont\nauthentiques, **un seul passe**. Demandez vos jetons par la même URL\nque celle configurée dans le service.\n\n## Le second facteur se DEMANDE\n\nLes actions marquées `second_facteur: true` exigent un facteur de\n**moins de quinze minutes**, attesté par `acr` relevé — ou `amr`\ncontenant `otp` — **et** `auth_time` récent.\n\nIl ne s'obtient pas tout seul. Ajoutez `acr_values=2` à la requête\nd'autorisation :\n\n```\nGET /realms/gandal/protocol/openid-connect/auth\n      ?client_id=gandal-admin\n      &response_type=code\n      &code_challenge_method=S256&code_challenge=...\n      &acr_values=2            <-- sans lui, acr=1 et tout est refuse\n```\n\n| ce que vous demandez | Keycloak | le jeton porte |\n|---|---|---|\n| rien | mot de passe seul | `acr=1` → `second_facteur` **refusé** |\n| `acr_values=2` | mot de passe **puis** TOTP | `acr=2` → permis |\n\nPour `gandal-admin`, demandez-le **à chaque autorisation** : c'est le\nrelèvement systématique du §5.8. Pour `gandal-frontend`, **seulement\ndevant une action sensible** — sinon vous imposez un code à chaque\nconnexion d'étudiant, pour rien.\n\nSi le compte n'a pas encore de TOTP, Keycloak présente l'écran\nd'inscription au premier relèvement. Ce n'est pas une erreur à\ncontourner : c'est le moment où l'administrateur inscrit son facteur.\n\n> **`default.acr.values` sur le client ne fonctionne pas** dans cette\n> configuration : Keycloak le refuse — *« Default ACR values need to\n> contain values specified in the ACR-To-Loa mapping… »* — alors même\n> que la carte du realm porte `2`. Mesuré deux fois le 30 octobre.\n> `acr_values=2` est la voie.\n",
+        "scheme": "bearer",
+        "type": "http"
+      },
+      "signatureGandal4": {
+        "description": "`GANDAL4-HMAC-SHA256 Credential=<id>/<AAAAMMJJ>/iam/gandal4_request,\nSignedHeaders=<liste triée>, Signature=<hex>`. La construction de SigV4 :\nle secret ne voyage jamais.\n\n**Signés obligatoirement :** `host`, `x-gandal-date`, `x-gandal-nonce`.\n**Signés s'ils sont présents, sinon refus :** `x-gandal-security-token`,\n`idempotency-key`, `content-type`. Le corps est signé par son empreinte.\n\nFenêtre de 5 minutes. Une signature déjà vue est refusée : un client qui\nréessaie re-signe. Une session ajoute son jeton dans\n`X-Gandal-Security-Token`. Tous les refus rendent le même 401 ; la\nraison est au journal, avec l'adresse.\n",
+        "in": "header",
+        "name": "Authorization",
+        "type": "apiKey"
+      }
+    }
+  },
+  "info": {
+    "description": "Contrat que la plateforme de gestion GANDAL utilise pour savoir **qui\ndemande quoi, s'il a le droit, et ce qu'il lui reste**.\n\nLes identifiants de contrats de la conception de la cellule sont\nconservés, pour ne pas casser les références des autres cellules :\n\n| contrat | objet | ici |\n|---|---|---|\n| `API-IAM-OIDC-001` | flux OIDC | famille A |\n| `API-IAM-JWKS-002` | clés publiques de signature | famille A |\n| `API-IAM-PDP-003` | décision d'autorisation | famille B |\n| `API-IAM-PDP-004` | décisions groupées | famille B |\n| `API-IAM-ROLE-006` | attribution et retrait de rôles | famille C |\n| `API-IAM-APPROVAL-012` | approbations et consentements | famille C |\n| `API-IAM-ADMIN-015` | comptes et cycle de vie | famille C |\n| `API-IAM-QUOTA-005` | consultation des quotas | famille D |\n| `API-IAM-QUOTA-010` | cycle de vie des réservations | famille D |\n| `API-IAM-AUDIT-009` | consultation du journal | famille C |\n\n## La règle fondatrice\n\n**Le jeton prouve QUI ; il ne dit pas CE QUI EST PERMIS.** Mesuré sur un\njeton réel de ce realm le 29 octobre 2026 : le rôle `user` y figure,\n**aucun attribut de quota n'y figure**. La plateforme interroge donc IAM\navant toute action, et ne décide jamais sur la foi du jeton.\n\n## Deux rôles de compte, et des capacités par projet\n\nLe compte porte **`user`** ou **`admin`** — c'est l'amendement du\n28 octobre. Mais **le partage se fait par projet**, et à l'intérieur d'un\nprojet chacun a une **capacité** :\n\n| capacité | ce qu'elle permet |\n|---|---|\n| `proprietaire` | tout sur le projet, y compris inviter et retirer |\n| `contributeur` | créer, démarrer, arrêter, console |\n| `lecteur` | voir et lire les métriques, rien de plus |\n\nCe ne sont **pas** des rôles de compte : ce sont des positions dans un\nprojet. C'est ce qui réconcilie « deux rôles seulement » avec le besoin\nd'inviter quelqu'un sur une ressource.\n\n## Le plan par défaut, et pourquoi il est sur un groupe\n\n`user` reste à **zéro de tout** : c'est le verrou, et il ne bouge pas.\nLe plan de la promotion est porté par un **groupe**, `promotion-gi27`,\ndans lequel on verse les comptes à l'import.\n\n| ressource | plan de promotion |\n|---|---|\n| `vm_count` | 1 |\n| `vcpu` | 2 |\n| `ram_gb` | 2 |\n| `disk_gb` | 20 |\n| `dev_env_hours_month` | 300 |\n\nCes chiffres disent **ce qu'une personne obtient sans rien demander**.\nIls ne sont **pas** déduits d'un effectif : le nombre de VM est à la\ndemande. Les heures par mois sont un réglage de départ, volontairement\nlarge, fait pour être resserré par Optimisation sur des mesures réelles.\n\n**Pourquoi pas sur le rôle `user`** : il est attribué automatiquement à\ntoute inscription, et la vérification par courriel est désactivée faute\nde serveur SMTP. Le poser là donnerait une VM à quiconque atteint la page\nd'inscription. Sur un groupe, un inconnu obtient le droit de se connecter\net rien d'autre.\n\n## Trois règles qu'aucune implémentation ne doit assouplir\n\n1. **Personne ne s'attribue de rôle**, ni un rôle supérieur au sien.\n2. **Toute attribution peut porter une date de fin.** À cette date le\n   rôle cesse de compter pour les décisions, même si la projection dans\n   l'IdP n'a pas encore été nettoyée.\n3. **Un compte est désactivé, jamais effacé** : l'historique d'audit\n   doit rester exploitable.\n\n## Ce qui est en service au 30 octobre 2026\n\n**Les quatre familles.** A par Keycloak ; B, C et D par le service de\ndécision `../decision-service/`, sur le port **8081**. Les 35 opérations\nde B, C et D sont servies, et `20-verifier.sh` les prouve une par une\ncontre le Keycloak réel — **192 vérifications**, plus 113 hors ligne.\n\n## Ce que la version 1.2.0 change\n\nTrois points, tous issus de l'implémentation :\n\n1. **`POST /quota-capacity` est ajouté.** La version 1.1.0 disait que\n   `disponible` « vient de la plateforme, pas d'IAM : IAM le **reçoit** et\n   le conserve », mais ne publiait **aucun chemin pour le recevoir** —\n   `disponible` et `ratio_engagement` restaient donc `null` pour toujours,\n   et `/quota-aggregates`, dont c'est la raison d'être, ne pouvait jamais\n   rendre le seul chiffre qui compte.\n2. **Le second facteur se demande.** Il ne s'obtient pas tout seul : le\n   portail ajoute `acr_values=2` à sa requête d'autorisation. Sans cela\n   `acr=1`, et toute action marquée `second_facteur` est refusée — même à\n   un `admin`. Détaillé sous `jetonPorteur`.\n3. **La correspondance des noms de ressources est publiée.** Le contrat\n   nomme `vm_count`, le realm porte `quota-vm` : les deux vocabulaires\n   coexistaient sans que personne l'ait écrit. Table sous `GET /quotas`.\n\nAucune opération de la version 1.1.0 ne change de forme. Un appelant écrit\npour 1.1.0 continue de fonctionner.\n\n**Version 1.4.0.** Deux familles s'ajoutent, et une manière de s'authentifier :\n\n1. **Famille E — les politiques par HTTP.** Elles se géraient en ligne de\n   commande sur la VM ; `POST /decisions` les évaluait déjà.\n2. **Famille F — identités de machine, clés d'accès, rôles assumables,\n   sessions.** C'est ce qui permet à un service sans second facteur de\n   demander une décision **au nom** d'une personne.\n3. **`signatureGandal4`** : une requête peut être signée au lieu de porter\n   un jeton.\n4. **`POST /quota-reservations`** accepte `sujet_delegue`, et\n   `ressource.hote` est accepté : `gandal:hote` était une clé de contexte\n   déclarée, jamais fournie par l'API.\n\nAucune opération de la version 1.3.0 ne change de forme.\n\n**Version 1.5.0 — rôles ET attributs (famille G).** Attributs libres sur une\npersonne, un projet ou une VM ; droits sur une ressource ; création d'un compte\ndans un projet. `POST /subjects` crée désormais le compte **dans Keycloak** et\nrend `mot_de_passe_temporaire`, une seule fois.\n\n**Un changement de comportement, et il est voulu :** pour une ressource comptée\npar IAM, `projet` et `proprietaire` viennent de la base et remplacent ce que dit\nla demande. Les omettre sur la VM d'un autre donnait `permit`.\n\n**Version 1.6.0 — TLS.** Les chemins ne changent pas, leur adresse si : le service\nest en HTTPS sur le 8081, Keycloak en HTTPS sur le **8443**, et le 8080 est fermé.\nL'**issuer** devient `https://10.30.0.30:8443/realms/gandal`. Tout client doit croire\nl'autorité interne : `iam/pki/gandal-ca.crt`.\n\n**Version 1.7.0 — le GPU, et une TROISIEME portée de quota.** Un quota se\nvérifiait au compte et au projet ; il se vérifie aussi, désormais, sur **la\nressource elle-même**. C'est ce qui permet de dire « cette VM-là a droit à\n2 Gio de mémoire GPU et deux heures par mois », sans toucher au plan du compte.\n\n1. **`gpu_mem_mb`** s'ajoute aux ressources de quota : la *quantité* de mémoire\n   GPU, en Mio (128 Mo → `128`, 2 Go → `2048`, 512 Go → `524288`). Le *temps*\n   reste `gpu_hours_month`. Les deux axes sont indépendants et cumulables.\n2. **`POST /quota-reservations` accepte `ressource_portee`** : la VM *sur\n   laquelle* on réserve, par opposition à `ressource_id`, qui est ce que la\n   réservation *crée*. C'est l'appel de l'agent d'une VM qui soumet un travail GPU.\n3. **`GET /resources/{id}/quotas`** rend les limites propres à une ressource.\n4. **Quatre actions `gpu:*`** : `read`, `attach`, `detach`, `job:submit`.\n\n**Une ressource sans limite propre est ILLIMITEE à son niveau**, et non à zéro :\nune limite par VM est un plafond *supplémentaire*, et le compte reste le gardien.\nL'inverse aurait mis tout le parc à zéro le jour de la mise en service.\n\nL'état d'ensemble est dans\n`../../Documentation/IAM_ECARTS_2026-10-28.md`.\n",
+    "summary": "Identité, projets, décision d'autorisation, rôles, approbations et quotas.",
+    "title": "GANDAL — API IAM",
+    "version": "1.7.0"
+  },
+  "openapi": "3.1.0",
+  "paths": {
+    "/.well-known/openid-configuration": {
+      "get": {
+        "description": "Point d'entrée unique qui décrit tous les autres. **Ne jamais coder\nen dur** les URL d'autorisation, de jeton ou de JWKS.\n\nFlux imposé : *Authorization Code* + **PKCE S256**. Flux implicite et\nmot de passe direct désactivés sur tous les clients.\n\nClients publics existants : `gandal-frontend` (session 24 h) et\n`gandal-admin` (session 8 h, second facteur systématique).\n",
+        "operationId": "decouverteOidc",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "authorization_endpoint": "https://10.30.0.30:8443/realms/gandal/protocol/openid-connect/auth",
+                  "code_challenge_methods_supported": [
+                    "S256"
+                  ],
+                  "end_session_endpoint": "https://10.30.0.30:8443/realms/gandal/protocol/openid-connect/logout",
+                  "issuer": "https://10.30.0.30:8443/realms/gandal",
+                  "jwks_uri": "https://10.30.0.30:8443/realms/gandal/protocol/openid-connect/certs",
+                  "token_endpoint": "https://10.30.0.30:8443/realms/gandal/protocol/openid-connect/token"
+                },
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Métadonnées du fournisseur."
+          }
+        },
+        "security": [],
+        "summary": "API-IAM-OIDC-001 — découverte OIDC",
+        "tags": [
+          "A · Authentification"
+        ]
+      }
+    },
+    "/access-keys": {
+      "get": {
+        "description": "Ni secret ni graine. `rotation_requise` est vrai à 90 jours.\n",
+        "operationId": "listerCles",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "sujet",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Succès."
+          },
+          "401": {
+            "$ref": "#/components/responses/NonAuthentifie"
+          },
+          "403": {
+            "$ref": "#/components/responses/Interdit"
+          }
+        },
+        "summary": "Ses clés ; `admin` celles d'un autre",
+        "tags": [
+          "F · Machines",
+          "clés et sessions"
+        ]
+      },
+      "post": {
+        "description": "Second facteur exigé, y compris pour la sienne : une requête signée n'en portant pas, une clé volée ne peut pas en fabriquer une autre pour survivre à sa révocation.\n\nDeux clés au plus par compte : c'est ce qui permet de tourner sans interruption.\n\n**Sans `Idempotency-Key`** : la réponse mémorisée pour la reprise écrirait le secret en clair dans la base.\n",
+        "operationId": "creerCle",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CleEntree"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Succès."
+          },
+          "401": {
+            "$ref": "#/components/responses/NonAuthentifie"
+          },
+          "403": {
+            "$ref": "#/components/responses/Interdit"
+          }
+        },
+        "summary": "Créer une clé — LE SECRET N'EST RENDU QU'ICI",
+        "tags": [
+          "F · Machines",
+          "clés et sessions"
+        ]
+      }
+    },
+    "/access-keys/{id}": {
+      "delete": {
+        "operationId": "supprimerCle",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/CleIdempotence"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Succès."
+          },
+          "401": {
+            "$ref": "#/components/responses/NonAuthentifie"
+          },
+          "403": {
+            "$ref": "#/components/responses/Interdit"
+          }
+        },
+        "summary": "Supprimer",
+        "tags": [
+          "F · Machines",
+          "clés et sessions"
+        ]
+      },
+      "patch": {
+        "description": "Désactiver AVANT de supprimer : c'est la rotation sûre, on peut revenir en arrière. Désactiver coupe aussi les sessions obtenues avec cette clé.\n",
+        "operationId": "changerStatutCle",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/CleIdempotence"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CleStatut"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Succès."
+          },
+          "401": {
+            "$ref": "#/components/responses/NonAuthentifie"
+          },
+          "403": {
+            "$ref": "#/components/responses/Interdit"
+          }
+        },
+        "summary": "Désactiver ou réactiver",
+        "tags": [
+          "F · Machines",
+          "clés et sessions"
+        ]
+      }
+    },
+    "/access-requests": {
+      "get": {
+        "description": "Celles que je dois approuver, et celles que j'ai faites.",
+        "operationId": "listerDemandesAcces",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "role",
+            "required": true,
+            "schema": {
+              "enum": [
+                "a_traiter",
+                "mes_demandes"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "etat",
+            "schema": {
+              "enum": [
+                "en_attente",
+                "approuvee",
+                "refusee",
+                "expiree"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "correlation_id": {
+                      "$ref": "#/components/schemas/CorrelationId"
+                    },
+                    "elements": {
+                      "items": {
+                        "$ref": "#/components/schemas/DemandeAcces"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Demandes."
+          }
+        },
+        "summary": "API-IAM-APPROVAL-012 — demandes d'accès à traiter",
+        "tags": [
+          "C · Sujets et projets"
+        ]
+      },
+      "post": {
+        "description": "Le chemin inverse de l'invitation : **c'est le demandeur qui\nsollicite**, et le propriétaire qui tranche (§8.2).\n\nRien n'est accordé tant que l'approbation n'est pas donnée. La\ndemande **expire d'elle-même** après `duree_s`, pour ne pas laisser\nde demandes éternelles en attente.\n",
+        "operationId": "demanderAcces",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/CleIdempotence"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "capacite": {
+                    "$ref": "#/components/schemas/Capacite"
+                  },
+                  "duree_s": {
+                    "default": 604800,
+                    "description": "Validité de la demande. Sept jours par défaut.",
+                    "type": "integer"
+                  },
+                  "fin_a": {
+                    "format": "date-time",
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "motif": {
+                    "maxLength": 500,
+                    "type": "string"
+                  },
+                  "projet": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "projet",
+                  "capacite",
+                  "motif"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DemandeAcces"
+                }
+              }
+            },
+            "description": "Demande enregistrée, en attente."
+          },
+          "409": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Probleme"
+                }
+              }
+            },
+            "description": "Déjà membre, ou demande identique déjà en attente."
+          }
+        },
+        "summary": "API-IAM-APPROVAL-012 — demander l'accès à un projet",
+        "tags": [
+          "C · Sujets et projets"
+        ]
+      }
+    },
+    "/access-requests/{idDemande}/decide": {
+      "parameters": [
+        {
+          "in": "path",
+          "name": "idDemande",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "post": {
+        "description": "Réservé au propriétaire du projet, ou à un `admin`.\n\n**L'approbation est enregistrée dans IAM**, avec son auteur, sa date\net son motif, et le rôle est accordé pour la durée demandée. Un refus\nest enregistré aussi : savoir qu'on a dit non est aussi utile que\nsavoir qu'on a dit oui.\n\n**Le demandeur ne peut pas approuver sa propre demande**, même s'il\nest `admin`.\n",
+        "operationId": "deciderDemandeAcces",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/CleIdempotence"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "capacite": {
+                    "$ref": "#/components/schemas/Capacite"
+                  },
+                  "fin_a": {
+                    "format": "date-time",
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "motif": {
+                    "maxLength": 500,
+                    "type": "string"
+                  },
+                  "verdict": {
+                    "enum": [
+                      "approuvee",
+                      "refusee"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "verdict",
+                  "motif"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DemandeAcces"
+                }
+              }
+            },
+            "description": "Décision enregistrée."
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Probleme"
+                }
+              }
+            },
+            "description": "Pas le propriétaire, ou auto-approbation."
+          }
+        },
+        "summary": "API-IAM-APPROVAL-012 — approuver ou refuser",
+        "tags": [
+          "C · Sujets et projets"
+        ]
+      }
+    },
+    "/actions": {
+      "get": {
+        "description": "Fait **autorité** : une action absente est refusée. Convention de\nnommage `domaine:ressource[:sous-ressource]:verbe`, en minuscules.\n",
+        "operationId": "listerActions",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "actions": [
+                    {
+                      "capacites": [],
+                      "cellule": "SEC1",
+                      "nom": "projet:create",
+                      "roles": [
+                        "user",
+                        "admin"
+                      ],
+                      "second_facteur": false
+                    },
+                    {
+                      "capacites": [
+                        "proprietaire"
+                      ],
+                      "cellule": "SEC1",
+                      "nom": "projet:membre:invite",
+                      "roles": [
+                        "user",
+                        "admin"
+                      ],
+                      "second_facteur": false
+                    },
+                    {
+                      "capacites": [
+                        "proprietaire"
+                      ],
+                      "cellule": "SEC1",
+                      "nom": "projet:membre:remove",
+                      "roles": [
+                        "user",
+                        "admin"
+                      ],
+                      "second_facteur": false
+                    },
+                    {
+                      "capacites": [
+                        "proprietaire"
+                      ],
+                      "cellule": "SEC1",
+                      "nom": "projet:transfer",
+                      "roles": [
+                        "admin"
+                      ],
+                      "second_facteur": true
+                    },
+                    {
+                      "capacites": [
+                        "proprietaire",
+                        "contributeur"
+                      ],
+                      "cellule": "S1",
+                      "nom": "vm:create",
+                      "roles": [
+                        "user",
+                        "admin"
+                      ],
+                      "second_facteur": false
+                    },
+                    {
+                      "capacites": [
+                        "proprietaire"
+                      ],
+                      "cellule": "S1",
+                      "nom": "vm:delete",
+                      "roles": [
+                        "user",
+                        "admin"
+                      ],
+                      "second_facteur": false
+                    },
+                    {
+                      "capacites": [
+                        "proprietaire",
+                        "contributeur"
+                      ],
+                      "cellule": "S1",
+                      "nom": "vm:start",
+                      "roles": [
+                        "user",
+                        "admin"
+                      ],
+                      "second_facteur": false
+                    },
+                    {
+                      "capacites": [
+                        "proprietaire",
+                        "contributeur"
+                      ],
+                      "cellule": "S1",
+                      "nom": "vm:console",
+                      "roles": [
+                        "user",
+                        "admin"
+                      ],
+                      "second_facteur": true
+                    },
+                    {
+                      "capacites": [
+                        "proprietaire",
+                        "contributeur",
+                        "lecteur"
+                      ],
+                      "cellule": "S1",
+                      "nom": "vm:read",
+                      "roles": [
+                        "user",
+                        "admin"
+                      ],
+                      "second_facteur": false
+                    },
+                    {
+                      "capacites": [],
+                      "cellule": "SEC1",
+                      "nom": "iam:role:update",
+                      "roles": [
+                        "admin"
+                      ],
+                      "second_facteur": true
+                    },
+                    {
+                      "capacites": [],
+                      "cellule": "SEC1",
+                      "nom": "iam:quota:grant",
+                      "roles": [
+                        "admin"
+                      ],
+                      "second_facteur": true
+                    },
+                    {
+                      "capacites": [],
+                      "cellule": "OPT1",
+                      "nom": "quota:policy:propose",
+                      "roles": [
+                        "user",
+                        "admin"
+                      ],
+                      "second_facteur": false
+                    },
+                    {
+                      "capacites": [],
+                      "cellule": "OPT1",
+                      "nom": "quota:aggregate:read",
+                      "roles": [
+                        "user",
+                        "admin"
+                      ],
+                      "second_facteur": false
+                    },
+                    {
+                      "capacites": [],
+                      "cellule": "OPT1",
+                      "nom": "quota:capacite:publier",
+                      "roles": [
+                        "admin"
+                      ],
+                      "second_facteur": false
+                    }
+                  ],
+                  "correlation_id": "01JB9X2K7M4Q8V0ZC3N5T6R7WB"
+                },
+                "schema": {
+                  "properties": {
+                    "actions": {
+                      "items": {
+                        "$ref": "#/components/schemas/Action"
+                      },
+                      "type": "array"
+                    },
+                    "correlation_id": {
+                      "$ref": "#/components/schemas/CorrelationId"
+                    }
+                  },
+                  "required": [
+                    "actions",
+                    "correlation_id"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Catalogue."
+          }
+        },
+        "summary": "Catalogue des actions",
+        "tags": [
+          "B · Décision"
+        ]
+      }
+    },
+    "/assumable-roles": {
+      "get": {
+        "operationId": "listerRolesAssumables",
+        "responses": {
+          "200": {
+            "description": "Succès."
+          },
+          "401": {
+            "$ref": "#/components/responses/NonAuthentifie"
+          },
+          "403": {
+            "$ref": "#/components/responses/Interdit"
+          }
+        },
+        "summary": "Les rôles assumables et leur confiance",
+        "tags": [
+          "F · Machines",
+          "clés et sessions"
+        ]
+      },
+      "post": {
+        "description": "`admin` et second facteur. `Principal: *` sans condition est refusé. Un rôle sans politique ne permet RIEN, quel que soit le mode : une session est toujours autoritative.\n",
+        "operationId": "poserRoleAssumable",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/CleIdempotence"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RoleEntree"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Succès."
+          },
+          "401": {
+            "$ref": "#/components/responses/NonAuthentifie"
+          },
+          "403": {
+            "$ref": "#/components/responses/Interdit"
+          }
+        },
+        "summary": "Créer ou REMPLACER un rôle",
+        "tags": [
+          "F · Machines",
+          "clés et sessions"
+        ]
+      }
+    },
+    "/assumable-roles/{nom}": {
+      "delete": {
+        "operationId": "supprimerRoleAssumable",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "nom",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/CleIdempotence"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Succès."
+          },
+          "401": {
+            "$ref": "#/components/responses/NonAuthentifie"
+          },
+          "403": {
+            "$ref": "#/components/responses/Interdit"
+          }
+        },
+        "summary": "Supprimer ; ses sessions sont coupées",
+        "tags": [
+          "F · Machines",
+          "clés et sessions"
+        ]
+      },
+      "get": {
+        "operationId": "lireRoleAssumable",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "nom",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Succès."
+          },
+          "401": {
+            "$ref": "#/components/responses/NonAuthentifie"
+          },
+          "403": {
+            "$ref": "#/components/responses/Interdit"
+          }
+        },
+        "summary": "Un rôle",
+        "tags": [
+          "F · Machines",
+          "clés et sessions"
+        ]
+      }
+    },
+    "/assumable-roles/{nom}/policies/{politique}": {
+      "delete": {
+        "operationId": "detacherDuRole",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "nom",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "politique",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/CleIdempotence"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Succès."
+          },
+          "401": {
+            "$ref": "#/components/responses/NonAuthentifie"
+          },
+          "403": {
+            "$ref": "#/components/responses/Interdit"
+          }
+        },
+        "summary": "La lui retirer",
+        "tags": [
+          "F · Machines",
+          "clés et sessions"
+        ]
+      },
+      "put": {
+        "operationId": "attacherAuRole",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "nom",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "politique",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/CleIdempotence"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Succès."
+          },
+          "401": {
+            "$ref": "#/components/responses/NonAuthentifie"
+          },
+          "403": {
+            "$ref": "#/components/responses/Interdit"
+          }
+        },
+        "summary": "Lui attacher une politique d'identité",
+        "tags": [
+          "F · Machines",
+          "clés et sessions"
+        ]
+      }
+    },
+    "/assumable-roles/{nom}/revoke-sessions": {
+      "post": {
+        "description": "Invalide tout ce qui a été émis avant cet instant, à la requête suivante.\n",
+        "operationId": "revoquerSessions",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "nom",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/CleIdempotence"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Succès."
+          },
+          "401": {
+            "$ref": "#/components/responses/NonAuthentifie"
+          },
+          "403": {
+            "$ref": "#/components/responses/Interdit"
+          }
+        },
+        "summary": "Couper toutes ses sessions, chaînées comprises",
+        "tags": [
+          "F · Machines",
+          "clés et sessions"
+        ]
+      }
+    },
+    "/audit": {
+      "get": {
+        "description": "Chaque décision, chaque attribution, chaque approbation, avec son\nauteur, son `correlation_id` et **l'adresse de l'appelant**.\n\nC'est la leçon directe du 28 octobre : sept objets détruits depuis\nune interface web, et l'infrastructure incapable de dire par qui.\n**Un journal sans adresse ni auteur ne vaut rien.**\n\nEn lecture seule, pour tout le monde. Un `user` ne voit que ce qui le\nconcerne.\n",
+        "operationId": "lireJournal",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "sujet",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "projet",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "action",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "depuis",
+            "schema": {
+              "format": "date-time",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "jusqu_a",
+            "schema": {
+              "format": "date-time",
+              "type": "string"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/Curseur"
+          },
+          {
+            "$ref": "#/components/parameters/Taille"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "correlation_id": {
+                      "$ref": "#/components/schemas/CorrelationId"
+                    },
+                    "curseur_suivant": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "elements": {
+                      "items": {
+                        "$ref": "#/components/schemas/EvenementAudit"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Page d'événements."
+          }
+        },
+        "summary": "API-IAM-AUDIT-009 — qui a fait quoi",
+        "tags": [
+          "Journal"
+        ]
+      }
+    },
+    "/decisions": {
+      "post": {
+        "description": "**L'appel que la plateforme fait avant toute action**, y compris\navant de réserver du quota.\n\nLe sujet vient du jeton, jamais du corps : un appelant ne décide pas\nau nom d'un autre. Pour agir au nom d'un tiers, `sujet_delegue`, qui\nexige un droit explicite et est tracé.\n\nLe verdict est le **ET** du rôle, de la capacité dans le projet, et\nde toutes les conditions. Le rôle *donne*, les conditions ne peuvent\nque *restreindre*.\n\n**Une action absente du catalogue est refusée** (`unknown_action`) :\nun oubli ne peut pas ouvrir une porte.\n",
+        "operationId": "demanderDecision",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/CorrelationId"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "creerVmDansUnProjet": {
+                  "summary": "créer une VM dans un projet",
+                  "value": {
+                    "action": "vm:create",
+                    "contexte": {
+                      "disk_gb": 20,
+                      "ram_gb": 4,
+                      "vcpu": 2
+                    },
+                    "ressource": {
+                      "projet": "prj_01JB9X2K7M",
+                      "type": "vm"
+                    }
+                  }
+                },
+                "inviterQuelquun": {
+                  "summary": "inviter un camarade sur son projet",
+                  "value": {
+                    "action": "projet:membre:invite",
+                    "ressource": {
+                      "id": "prj_01JB9X2K7M",
+                      "type": "projet"
+                    }
+                  }
+                }
+              },
+              "schema": {
+                "$ref": "#/components/schemas/DemandeDecision"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "examples": {
+                  "refus": {
+                    "value": {
+                      "correlation_id": "01JB9X2K7M4Q8V0ZC3N5T6R7W8",
+                      "decision": "deny",
+                      "explication": "vm_count : limite 0, consomme 0, reserve 0, restant 0",
+                      "motif": "quota_depasse",
+                      "regle": "Q-001",
+                      "valide_jusqu_a": "2026-10-30T08:15:30Z"
+                    }
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/Decision"
+                }
+              }
+            },
+            "description": "Verdict rendu. **`200` ne veut pas dire `permit`** — lire\n`decision`.\n"
+          },
+          "401": {
+            "$ref": "#/components/responses/NonAuthentifie"
+          },
+          "403": {
+            "$ref": "#/components/responses/Interdit"
+          },
+          "422": {
+            "$ref": "#/components/responses/ContratInvalide"
+          },
+          "503": {
+            "$ref": "#/components/responses/Indisponible"
+          }
+        },
+        "summary": "API-IAM-PDP-003 — ce sujet peut-il faire cette action ?",
+        "tags": [
+          "B · Décision"
+        ]
+      }
+    },
+    "/decisions:batch": {
+      "post": {
+        "description": "Pour afficher une liste en grisant ce qui est interdit, sans faire\ncinquante appels. **Chaque élément est décidé indépendamment.**\nLecture seule : ne réserve rien, ne consomme rien. Au plus 100.\n",
+        "operationId": "demanderDecisionsGroupees",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/CorrelationId"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "demandes": {
+                    "items": {
+                      "$ref": "#/components/schemas/DemandeDecision"
+                    },
+                    "maxItems": 100,
+                    "minItems": 1,
+                    "type": "array"
+                  }
+                },
+                "required": [
+                  "demandes"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "correlation_id": {
+                      "$ref": "#/components/schemas/CorrelationId"
+                    },
+                    "decisions": {
+                      "items": {
+                        "$ref": "#/components/schemas/Decision"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "required": [
+                    "decisions",
+                    "correlation_id"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Un verdict par demande, dans le même ordre."
+          },
+          "401": {
+            "$ref": "#/components/responses/NonAuthentifie"
+          },
+          "422": {
+            "$ref": "#/components/responses/ContratInvalide"
+          }
+        },
+        "summary": "API-IAM-PDP-004 — plusieurs verdicts en un appel",
+        "tags": [
+          "B · Décision"
+        ]
+      }
+    },
+    "/machine-identities": {
+      "post": {
+        "description": "`admin` et second facteur. Identifiant rendu : `svc-<nom>`. Rôle `user`, plan `aucun` : le plancher. Ses vrais droits passeront par les rôles qu'elle pourra endosser.\n",
+        "operationId": "creerIdentiteMachine",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/CleIdempotence"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MachineEntree"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Succès."
+          },
+          "401": {
+            "$ref": "#/components/responses/NonAuthentifie"
+          },
+          "403": {
+            "$ref": "#/components/responses/Interdit"
+          }
+        },
+        "summary": "Une identité qui n'est personne",
+        "tags": [
+          "F · Machines",
+          "clés et sessions"
+        ]
+      }
+    },
+    "/policies": {
+      "get": {
+        "operationId": "listerPolitiques",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "genre",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Succès."
+          },
+          "401": {
+            "$ref": "#/components/responses/NonAuthentifie"
+          },
+          "403": {
+            "$ref": "#/components/responses/Interdit"
+          }
+        },
+        "summary": "Les politiques, attachements et avertissements",
+        "tags": [
+          "E · Politiques"
+        ]
+      },
+      "post": {
+        "description": "`admin` et second facteur. Un document invalide est refusé ici (422), avec la raison : entré en base, il se comporterait comme une politique absente.\n\n**Une porte d'identité NON VIDE refuse ce qu'elle n'accorde pas.** Un document fait d'un seul `Deny`, attaché à un rôle, ferme donc tout pour ce rôle : y joindre l'`Allow` voulu.\n",
+        "operationId": "poserPolitique",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/CleIdempotence"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PolitiqueEntree"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Succès."
+          },
+          "401": {
+            "$ref": "#/components/responses/NonAuthentifie"
+          },
+          "403": {
+            "$ref": "#/components/responses/Interdit"
+          }
+        },
+        "summary": "Enregistrer ou REMPLACER une politique, après validation",
+        "tags": [
+          "E · Politiques"
+        ]
+      }
+    },
+    "/policies/{nom}": {
+      "delete": {
+        "operationId": "supprimerPolitique",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "nom",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/CleIdempotence"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Succès."
+          },
+          "401": {
+            "$ref": "#/components/responses/NonAuthentifie"
+          },
+          "403": {
+            "$ref": "#/components/responses/Interdit"
+          }
+        },
+        "summary": "Supprimer, avec ses attachements",
+        "tags": [
+          "E · Politiques"
+        ]
+      },
+      "get": {
+        "operationId": "lirePolitique",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "nom",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Succès."
+          },
+          "401": {
+            "$ref": "#/components/responses/NonAuthentifie"
+          },
+          "403": {
+            "$ref": "#/components/responses/Interdit"
+          }
+        },
+        "summary": "Le document, tel qu'approuvé",
+        "tags": [
+          "E · Politiques"
+        ]
+      }
+    },
+    "/policies/{nom}/attachments": {
+      "post": {
+        "description": "Droit distinct de l'écriture : `iam:policy:attach`. Sépare la rédaction de la mise en service, et permet de relire un document avant qu'il ne décide quoi que ce soit.\n",
+        "operationId": "attacherPolitique",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "nom",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/CleIdempotence"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AttachementEntree"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Succès."
+          },
+          "401": {
+            "$ref": "#/components/responses/NonAuthentifie"
+          },
+          "403": {
+            "$ref": "#/components/responses/Interdit"
+          }
+        },
+        "summary": "La mettre EN SERVICE",
+        "tags": [
+          "E · Politiques"
+        ]
+      }
+    },
+    "/policies/{nom}/attachments/organisation": {
+      "delete": {
+        "operationId": "detacherPolitiqueOrganisation",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "nom",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/CleIdempotence"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Succès."
+          },
+          "401": {
+            "$ref": "#/components/responses/NonAuthentifie"
+          },
+          "403": {
+            "$ref": "#/components/responses/Interdit"
+          }
+        },
+        "summary": "Retirer une politique d'organisation, dont la cible est vide",
+        "tags": [
+          "E · Politiques"
+        ]
+      }
+    },
+    "/policies/{nom}/attachments/{cibleType}/{cible}": {
+      "delete": {
+        "operationId": "detacherPolitique",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "nom",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "cibleType",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "cible",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/CleIdempotence"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Succès."
+          },
+          "401": {
+            "$ref": "#/components/responses/NonAuthentifie"
+          },
+          "403": {
+            "$ref": "#/components/responses/Interdit"
+          }
+        },
+        "summary": "La retirer d'une cible",
+        "tags": [
+          "E · Politiques"
+        ]
+      }
+    },
+    "/policies:generate": {
+      "post": {
+        "description": "Ce qui fait du passage en mode autoritatif un appel et non une réécriture. `essai: true` n'écrit rien.\n",
+        "operationId": "engendrerPolitiquesBase",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/CleIdempotence"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DemandeEngendrer"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Succès."
+          },
+          "401": {
+            "$ref": "#/components/responses/NonAuthentifie"
+          },
+          "403": {
+            "$ref": "#/components/responses/Interdit"
+          }
+        },
+        "summary": "Les politiques de base, une par rôle, tirées du catalogue",
+        "tags": [
+          "E · Politiques"
+        ]
+      }
+    },
+    "/policies:simulate": {
+      "post": {
+        "description": "Lecture seule, sans clé d'idempotence. Porte sur **l'appelant** ; pour un tiers, `sujet_delegue`, qui exige le droit de déléguer.\n",
+        "operationId": "simulerPolitiques",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DemandeSimulation"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Succès."
+          },
+          "401": {
+            "$ref": "#/components/responses/NonAuthentifie"
+          },
+          "403": {
+            "$ref": "#/components/responses/Interdit"
+          }
+        },
+        "summary": "Le verdict et le raisonnement, porte par porte",
+        "tags": [
+          "E · Politiques"
+        ]
+      }
+    },
+    "/policy-context-keys": {
+      "get": {
+        "description": "Liste FERMÉE : une clé absente est refusée à l'écriture.\n",
+        "operationId": "clesContexte",
+        "responses": {
+          "200": {
+            "description": "Succès."
+          },
+          "401": {
+            "$ref": "#/components/responses/NonAuthentifie"
+          },
+          "403": {
+            "$ref": "#/components/responses/Interdit"
+          }
+        },
+        "summary": "Ce qu'une condition peut interroger",
+        "tags": [
+          "E · Politiques"
+        ]
+      }
+    },
+    "/projects": {
+      "get": {
+        "description": "Ceux dont je suis propriétaire, et ceux où je suis membre. Un `admin`\nvoit tout avec `tous=true`.\n",
+        "operationId": "listerProjets",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "tous",
+            "schema": {
+              "default": false,
+              "type": "boolean"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/Curseur"
+          },
+          {
+            "$ref": "#/components/parameters/Taille"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "correlation_id": {
+                      "$ref": "#/components/schemas/CorrelationId"
+                    },
+                    "curseur_suivant": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "elements": {
+                      "items": {
+                        "$ref": "#/components/schemas/Projet"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Page de projets."
+          }
+        },
+        "summary": "Mes projets",
+        "tags": [
+          "C · Sujets et projets"
+        ]
+      },
+      "post": {
+        "description": "**IAM fait foi pour l'existence d'un projet, ses membres et ses\nquotas** ; la plateforme en détient la description fonctionnelle\n(§6.2).\n\nLe demandeur devient **propriétaire**. Les quotas du projet sont\ndérivés du plan, et **plafonnés par ceux du demandeur** : on ne crée\npas de ressources en se cachant derrière un projet.\n\nRefusé avec `quota_depasse` si le compte n'a pas de quoi porter le\nprojet — c'est le cas d'un compte neuf, et c'est voulu.\n",
+        "operationId": "creerProjet",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/CleIdempotence"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "description": {
+                    "maxLength": 500,
+                    "type": "string"
+                  },
+                  "environnement": {
+                    "default": "developpement",
+                    "enum": [
+                      "developpement",
+                      "production"
+                    ],
+                    "type": "string"
+                  },
+                  "nom": {
+                    "example": "tp-reseau-gi27",
+                    "pattern": "^[a-z][a-z0-9-]{1,38}$",
+                    "type": "string"
+                  },
+                  "plan": {
+                    "description": "Plan de souscription. Défaut, celui du compte.",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "nom"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Projet"
+                }
+              }
+            },
+            "description": "Projet créé, demandeur propriétaire."
+          },
+          "403": {
+            "$ref": "#/components/responses/Interdit"
+          },
+          "409": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Probleme"
+                }
+              }
+            },
+            "description": "Nom déjà pris, ou quota insuffisant."
+          }
+        },
+        "summary": "Créer un projet",
+        "tags": [
+          "C · Sujets et projets"
+        ]
+      }
+    },
+    "/projects/{idProjet}": {
+      "delete": {
+        "description": "**Archive, ne détruit pas.** Le projet devient inerte : plus aucune\ncréation, les ressources existantes restent. Refusé tant qu'il porte\ndes ressources vivantes — motif `ressources_presentes`, avec leur\nliste, pour que personne ne perde une VM par inadvertance.\n",
+        "operationId": "archiverProjet",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/CleIdempotence"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Projet"
+                }
+              }
+            },
+            "description": "Archivé."
+          },
+          "409": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Probleme"
+                }
+              }
+            },
+            "description": "Des ressources vivent encore dans ce projet."
+          }
+        },
+        "summary": "Archiver un projet",
+        "tags": [
+          "C · Sujets et projets"
+        ]
+      },
+      "get": {
+        "operationId": "lireProjet",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Projet"
+                }
+              }
+            },
+            "description": "Le projet."
+          },
+          "403": {
+            "$ref": "#/components/responses/Interdit"
+          },
+          "404": {
+            "$ref": "#/components/responses/Introuvable"
+          }
+        },
+        "summary": "Un projet, ses membres et ses quotas",
+        "tags": [
+          "C · Sujets et projets"
+        ]
+      },
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/IdProjet"
+        }
+      ]
+    },
+    "/projects/{idProjet}/members": {
+      "get": {
+        "operationId": "listerMembres",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "correlation_id": {
+                      "$ref": "#/components/schemas/CorrelationId"
+                    },
+                    "membres": {
+                      "items": {
+                        "$ref": "#/components/schemas/Membre"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Membres et capacités."
+          }
+        },
+        "summary": "Les membres d'un projet",
+        "tags": [
+          "C · Sujets et projets"
+        ]
+      },
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/IdProjet"
+        }
+      ],
+      "post": {
+        "description": "**C'est ici qu'on partage une VM ou un projet.** Réservé au\npropriétaire, ou à un `admin`.\n\n`fin_a` est **obligatoire pour un invité externe**, et pour tout\naccès pédagogique accordé par un enseignant — six mois au plus,\n§8.2. À cette date l'accès cesse de compter pour les décisions.\n\nTrois interdits : **s'inviter soi-même**, **accorder une capacité\nsupérieure à la sienne**, et inviter un compte désactivé.\n\nL'invitation est **immédiate** : il n'y a pas d'acceptation à\nattendre. Pour le chemin inverse — quelqu'un qui *demande* à entrer —\nvoir `/access-requests`.\n",
+        "operationId": "inviterMembre",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/CleIdempotence"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "example": {
+                "capacite": "contributeur",
+                "fin_a": "2027-03-01T00:00:00Z",
+                "motif": "binome de TP",
+                "sujet": "etu-gi27-042"
+              },
+              "schema": {
+                "properties": {
+                  "capacite": {
+                    "$ref": "#/components/schemas/Capacite"
+                  },
+                  "fin_a": {
+                    "format": "date-time",
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "motif": {
+                    "maxLength": 500,
+                    "type": "string"
+                  },
+                  "sujet": {
+                    "description": "Identifiant du compte, ou son courriel.",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "sujet",
+                  "capacite"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Membre"
+                }
+              }
+            },
+            "description": "Membre ajouté."
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Probleme"
+                }
+              }
+            },
+            "description": "Pas propriétaire, auto-invitation, ou capacité supérieure à la\nsienne.\n"
+          },
+          "404": {
+            "$ref": "#/components/responses/Introuvable"
+          }
+        },
+        "summary": "Inviter quelqu'un sur un projet",
+        "tags": [
+          "C · Sujets et projets"
+        ]
+      }
+    },
+    "/projects/{idProjet}/members/{idSujet}": {
+      "delete": {
+        "description": "Réservé au propriétaire. **Le propriétaire ne peut pas se retirer\nlui-même** : il transfère d'abord. Sans cette règle, un projet\ndeviendrait orphelin.\n\nLes ressources créées par ce membre **restent** dans le projet : il\nperd l'accès, le projet garde ses VM.\n",
+        "operationId": "retirerMembre",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/CleIdempotence"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Retiré",
+            "ou déjà absent.": null
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Probleme"
+                }
+              }
+            },
+            "description": "Pas propriétaire, ou tentative d'auto-retrait du propriétaire."
+          }
+        },
+        "summary": "Retirer quelqu'un d'un projet",
+        "tags": [
+          "C · Sujets et projets"
+        ]
+      },
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/IdProjet"
+        },
+        {
+          "$ref": "#/components/parameters/IdSujet"
+        }
+      ],
+      "patch": {
+        "description": "Réservé au propriétaire. La capacité `proprietaire` ne se donne pas ici — voir `/transfer`.",
+        "operationId": "changerCapaciteMembre",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/CleIdempotence"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "capacite": {
+                    "$ref": "#/components/schemas/Capacite"
+                  },
+                  "fin_a": {
+                    "format": "date-time",
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "motif": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "capacite"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Membre"
+                }
+              }
+            },
+            "description": "Capacité modifiée."
+          },
+          "403": {
+            "$ref": "#/components/responses/Interdit"
+          }
+        },
+        "summary": "Changer la capacité d'un membre",
+        "tags": [
+          "C · Sujets et projets"
+        ]
+      }
+    },
+    "/projects/{idProjet}/members:create": {
+      "post": {
+        "description": "Propriétaire du projet, second facteur. Aucun groupe, zéro de quota : le propriétaire ne donne que ce qu'il a. Rend `mot_de_passe_temporaire` une seule fois, à changer à la première connexion ; une reprise par clé d'idempotence ne le rend pas.\n",
+        "operationId": "creerMembre",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "idProjet",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/CleIdempotence"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MembreNouveau"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Succès."
+          },
+          "401": {
+            "$ref": "#/components/responses/NonAuthentifie"
+          },
+          "403": {
+            "$ref": "#/components/responses/Interdit"
+          }
+        },
+        "summary": "Créer un compte et le faire entrer dans le projet",
+        "tags": [
+          "G · Attributs et droits"
+        ]
+      }
+    },
+    "/projects/{idProjet}/transfer": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/IdProjet"
+        }
+      ],
+      "post": {
+        "description": "Réservé à `admin`, **second facteur exigé**. Le §8.2 le réserve au\npropriétaire du tenant ou à un administrateur : un propriétaire ne se\ndébarrasse pas d'un projet tout seul.\n\nUsage principal : le départ d'un étudiant, dont les projets doivent\nêtre réattribués plutôt qu'orphelins.\n",
+        "operationId": "transfererProjet",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/CleIdempotence"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "motif": {
+                    "maxLength": 500,
+                    "type": "string"
+                  },
+                  "nouveau_proprietaire": {
+                    "format": "uuid",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "nouveau_proprietaire",
+                  "motif"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Projet"
+                }
+              }
+            },
+            "description": "Transféré."
+          },
+          "403": {
+            "$ref": "#/components/responses/Interdit"
+          },
+          "409": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Probleme"
+                }
+              }
+            },
+            "description": "Le nouveau propriétaire n'a pas le quota pour porter ce projet."
+          }
+        },
+        "summary": "Transférer la propriété d'un projet",
+        "tags": [
+          "C · Sujets et projets"
+        ]
+      }
+    },
+    "/protocol/openid-connect/certs": {
+      "get": {
+        "description": "**La vérification de signature est locale et obligatoire.** Elle ne\ncoûte rien et ne dépend pas de la disponibilité d'IAM : un jeton mal\nsigné est refusé sans aucun appel réseau.\n\nGarder les clés en cache, les recharger quand un `kid` inconnu\napparaît.\n",
+        "operationId": "clesPubliques",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Jeu de clés."
+          }
+        },
+        "security": [],
+        "summary": "API-IAM-JWKS-002 — clés publiques de signature",
+        "tags": [
+          "A · Authentification"
+        ]
+      }
+    },
+    "/quota-aggregates": {
+      "get": {
+        "description": "**Ce que la cellule Optimisation observe.** En lecture seule, pour\ntout le monde ; aucun écrit n'est possible ici.\n\nIAM ne connaît pas le nombre de VM que la plateforme portera : c'est\nà la demande. Il ne peut donc pas interdire la sursouscription — il\npeut seulement la **rendre visible**, et c'est le but de cet appel.\n\nLe rapport qui compte est `engage / disponible` :\n\n| ratio | lecture |\n|---|---|\n| < 1 | tout le monde peut tout allouer en même temps |\n| 1 à 3 | sursouscription normale pour un laboratoire |\n| > 3 | une création réussira, mais un démarrage de VM pourra échouer **au niveau de l'hyperviseur**, sans erreur de quota pour l'utilisateur |\n\n> **C'est la seule panne que ce contrat ne peut pas expliquer à\n> l'utilisateur.** Un quota dépassé donne un `409` lisible ; une RAM\n> épuisée sur l'hôte donne un échec de démarrage. D'où cet appel, et\n> d'où le quota de période.\n\n`disponible` vient de la plateforme, pas d'IAM : IAM le reçoit et le\nconserve, et le rend ici avec sa date de mesure pour qu'on sache s'il\nest frais.\n",
+        "operationId": "lireAgregats",
+        "parameters": [
+          {
+            "description": "Limiter à un plan.",
+            "in": "query",
+            "name": "plan",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Agregats"
+                }
+              }
+            },
+            "description": "Totaux par ressource."
+          },
+          "401": {
+            "$ref": "#/components/responses/NonAuthentifie"
+          }
+        },
+        "summary": "API-IAM-QUOTA-005 — engagé, consommé, disponible, à l'échelle du grid",
+        "tags": [
+          "D · Quotas"
+        ]
+      }
+    },
+    "/quota-capacity": {
+      "post": {
+        "description": "**Ajouté en 1.2.0, et voici pourquoi.** Le contrat disait déjà que\n`disponible` « vient de la plateforme, pas d'IAM : IAM le **reçoit** et\nle conserve », mais il ne publiait **aucun chemin pour le recevoir**.\nSans celui-ci, `disponible` et `ratio_engagement` restent `null` pour\ntoujours, et `/quota-aggregates` — dont c'est la raison d'être — ne\npeut jamais rendre le seul chiffre qui compte, `engage / disponible`.\n\n**IAM ne devine jamais la capacité.** Il ne connaît pas le matériel :\nc'est la plateforme qui mesure la RAM libre des hôtes, les vCPU\ndisponibles, l'espace des SR. Elle transmet, IAM conserve et rend avec\nla **date de mesure** — pour qu'on sache si le chiffre est frais.\n\n> **Une mesure vieille ne vaut rien, une mesure absente non plus.**\n> Si aucune mesure n'a été reçue pour une ressource, le ratio est\n> `null` — *inconnu*, pas *bon*. Un ratio calculé sur une capacité\n> périmée est plus trompeur qu'une absence de ratio.\n\nAction `quota:capacite:publier`, réservée à `admin`. C'est le seul\npoint d'écriture de la famille D que la cellule Optimisation ne peut\npas appeler : elle **observe** et **propose**, elle ne décide rien —\net la capacité physique n'est pas une proposition, c'est un fait\nmesuré par la plateforme.\n",
+        "operationId": "publierCapacite",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/CleIdempotence"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "example": {
+                "mesure_le": "2026-10-30T08:44:23Z",
+                "mesures": {
+                  "disk_gb": 4000,
+                  "ram_gb": 96,
+                  "vcpu": 48
+                }
+              },
+              "schema": {
+                "properties": {
+                  "mesure_le": {
+                    "description": "Instant de la mesure. Omis, IAM prend l'heure de\nréception — ce qui est faux si la mesure a traîné dans une\nfile, d'où ce champ.\n",
+                    "format": "date-time",
+                    "type": "string"
+                  },
+                  "mesures": {
+                    "additionalProperties": {
+                      "minimum": 0,
+                      "type": "integer"
+                    },
+                    "description": "Ressource -> capacité physique mesurée. Les noms sont ceux\ndu contrat (`ram_gb`, et non `quota-memoire-gio`).\n",
+                    "type": "object"
+                  }
+                },
+                "required": [
+                  "mesures"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "correlation_id": {
+                      "$ref": "#/components/schemas/CorrelationId"
+                    },
+                    "mesure_le": {
+                      "format": "date-time",
+                      "type": "string"
+                    },
+                    "mesures": {
+                      "additionalProperties": {
+                        "type": "integer"
+                      },
+                      "type": "object"
+                    }
+                  },
+                  "required": [
+                    "mesures",
+                    "mesure_le",
+                    "correlation_id"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Mesure enregistrée."
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Probleme"
+                }
+              }
+            },
+            "description": "L'appelant n'a pas `quota:capacite:publier`."
+          },
+          "422": {
+            "$ref": "#/components/responses/ContratInvalide"
+          }
+        },
+        "summary": "API-IAM-QUOTA-005 — la plateforme transmet la capacité mesurée",
+        "tags": [
+          "D · Quotas"
+        ]
+      }
+    },
+    "/quota-proposals": {
+      "get": {
+        "operationId": "listerPropositions",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "etat",
+            "schema": {
+              "enum": [
+                "en_attente",
+                "appliquee",
+                "refusee"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "correlation_id": {
+                      "$ref": "#/components/schemas/CorrelationId"
+                    },
+                    "elements": {
+                      "items": {
+                        "$ref": "#/components/schemas/Proposition"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Propositions."
+          }
+        },
+        "summary": "Propositions de changement de plan",
+        "tags": [
+          "D · Quotas"
+        ]
+      },
+      "post": {
+        "description": "Action `quota:policy:propose`. **Rien ne change dans les quotas.**\nUne proposition est une demande, exactement comme une demande\nd'accès : elle attend la décision d'un `admin`.\n\nC'est la règle du §8.1, et elle est délibérée : la cellule\nOptimisation mesure mieux que personne, mais **un quota qui bouge\ntout seul rend une plateforme imprévisible** — un étudiant verrait sa\nlimite baisser sans qu'aucun humain l'ait décidé, et personne ne\nsaurait dire pourquoi.\n\n`justification` est obligatoire et doit citer la mesure : c'est ce qui\npermet à l'`admin` de décider autre chose qu'à l'instinct.\n",
+        "operationId": "proposerPlan",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/CleIdempotence"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "example": {
+                "changements": {
+                  "dev_env_hours_month": 150
+                },
+                "justification": "engage/disponible = 3,4 sur ram_gb sur 14 jours ; 11 echecs de demarrage faute de memoire sur la periode, aucun refus de quota",
+                "plan": "promotion"
+              },
+              "schema": {
+                "properties": {
+                  "changements": {
+                    "additionalProperties": {
+                      "type": "integer"
+                    },
+                    "description": "Ressource -> nouvelle limite proposée.",
+                    "type": "object"
+                  },
+                  "effet_a": {
+                    "format": "date-time",
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "justification": {
+                    "description": "La mesure qui fonde la proposition.",
+                    "maxLength": 2000,
+                    "type": "string"
+                  },
+                  "plan": {
+                    "example": "promotion",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "plan",
+                  "changements",
+                  "justification"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Proposition"
+                }
+              }
+            },
+            "description": "Proposition enregistrée, en attente. **Aucun quota modifié.**"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Probleme"
+                }
+              }
+            },
+            "description": "L'appelant n'a pas `quota:policy:propose`."
+          }
+        },
+        "summary": "Proposer un changement de plan — Optimisation, et elle seule",
+        "tags": [
+          "D · Quotas"
+        ]
+      }
+    },
+    "/quota-proposals/{idProposition}/decide": {
+      "parameters": [
+        {
+          "in": "path",
+          "name": "idProposition",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "post": {
+        "description": "Réservé à `admin`, **second facteur exigé**. Appliquer réécrit les\nlimites du plan et publie `QUOTA_PLAN_CHANGED`.\n\n**Une baisse de limite ne détruit rien** : les comptes au-dessus de la\nnouvelle limite gardent leurs ressources et ne peuvent plus en créer.\nLa réponse les énumère, pour qu'on sache qui est concerné avant de\nl'apprendre par une plainte.\n\n**L'auteur d'une proposition ne peut pas l'appliquer lui-même**, même\ns'il est `admin`.\n",
+        "operationId": "deciderProposition",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/CleIdempotence"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "motif": {
+                    "maxLength": 500,
+                    "type": "string"
+                  },
+                  "verdict": {
+                    "enum": [
+                      "appliquee",
+                      "refusee"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "verdict",
+                  "motif"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "correlation_id": {
+                      "$ref": "#/components/schemas/CorrelationId"
+                    },
+                    "proposition": {
+                      "$ref": "#/components/schemas/Proposition"
+                    },
+                    "sujets_au_dessus_de_la_limite": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Décision enregistrée."
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Probleme"
+                }
+              }
+            },
+            "description": "Pas `admin`, second facteur trop ancien, ou auto-application."
+          }
+        },
+        "summary": "Appliquer ou refuser une proposition",
+        "tags": [
+          "D · Quotas"
+        ]
+      }
+    },
+    "/quota-reservations": {
+      "post": {
+        "description": "**Premier des deux temps d'une création.** Sans réservation, deux\ncréations simultanées passent toutes deux sous le même solde — c'est\nla raison d'être du champ `reserve` dans la formule.\n\nLa réservation **expire d'elle-même** à `expire_a`, **quinze minutes\npar défaut** (§8.1). Une plateforme qui tombe en cours de route ne\nlaisse donc aucun quota bloqué : il n'y a rien à nettoyer à la main.\n\nLa réservation est refusée si elle dépasse le restant **sur l'une\nquelconque** des ressources demandées, au niveau du compte **comme**\ndu projet.\n",
+        "operationId": "reserverQuota",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/CleIdempotence"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "example": {
+                "projet": "prj_01JB9X2K7M",
+                "ressources": {
+                  "disk_gb": 20,
+                  "ram_gb": 4,
+                  "vcpu": 2,
+                  "vm_count": 1
+                }
+              },
+              "schema": {
+                "properties": {
+                  "duree_s": {
+                    "default": 900,
+                    "description": "Quinze minutes par défaut, comme le §8.1.",
+                    "maximum": 3600,
+                    "minimum": 30,
+                    "type": "integer"
+                  },
+                  "projet": {
+                    "description": "Projet porteur. Sinon, le compte.",
+                    "type": "string"
+                  },
+                  "ressource_portee": {
+                    "description": "La ressource SUR laquelle on réserve — la VM d'un travail GPU. Le quota est vérifié à sa portée en plus du compte et du projet. Exige le droit sur cette ressource.",
+                    "type": "string"
+                  },
+                  "ressources": {
+                    "additionalProperties": {
+                      "minimum": 0,
+                      "type": "integer"
+                    },
+                    "description": "Quantité demandée par ressource.",
+                    "type": "object"
+                  },
+                  "sujet_delegue": {
+                    "description": "Retenir le quota DE cette personne. Exige le droit de déléguer.",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "ressources"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Reservation"
+                }
+              }
+            },
+            "description": "Réservation accordée."
+          },
+          "403": {
+            "$ref": "#/components/responses/Interdit"
+          },
+          "409": {
+            "content": {
+              "application/problem+json": {
+                "example": {
+                  "correlation_id": "01JB9X2K7M4Q8V0ZC3N5T6R7WD",
+                  "detail": "vm_count : limite 0, consomme 0, reserve 0, restant 0, demande 1",
+                  "status": 409,
+                  "title": "Quota depasse",
+                  "type": "https://gandal.internal/erreurs/quota-depasse"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/Probleme"
+                }
+              }
+            },
+            "description": "Restant insuffisant. Le détail nomme **quelle** ressource bloque.\n"
+          }
+        },
+        "summary": "API-IAM-QUOTA-010 — réserver avant de créer",
+        "tags": [
+          "D · Quotas"
+        ]
+      }
+    },
+    "/quota-reservations/{idReservation}": {
+      "delete": {
+        "description": "**À appeler dès qu'une création échoue**, sans attendre l'expiration.\nIdempotent : libérer deux fois rend `204` les deux fois.\n",
+        "operationId": "libererReservation",
+        "responses": {
+          "204": {
+            "description": "Libérée",
+            "ou déjà libérée.": null
+          },
+          "404": {
+            "$ref": "#/components/responses/Introuvable"
+          }
+        },
+        "summary": "API-IAM-QUOTA-010 — libérer, la création a échoué",
+        "tags": [
+          "D · Quotas"
+        ]
+      },
+      "get": {
+        "operationId": "lireReservation",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Reservation"
+                }
+              }
+            },
+            "description": "La réservation."
+          },
+          "404": {
+            "$ref": "#/components/responses/Introuvable"
+          }
+        },
+        "summary": "API-IAM-QUOTA-010 — état d'une réservation",
+        "tags": [
+          "D · Quotas"
+        ]
+      },
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/IdReservation"
+        }
+      ]
+    },
+    "/quota-reservations/{idReservation}/commit": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/IdReservation"
+        }
+      ],
+      "post": {
+        "description": "**Second des deux temps.** Le réservé devient consommé, et la\nressource est rattachée à son propriétaire et à son projet.\n\nConfirmer une réservation **expirée** échoue avec `409` : la\nplateforme doit alors détruire ce qu'elle vient de créer, ou\nredemander une réservation. C'est le seul cas où elle a du ménage à\nfaire, et il est explicite.\n",
+        "operationId": "confirmerReservation",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/CleIdempotence"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "ressource_id": {
+                    "example": "salle-01",
+                    "type": "string"
+                  },
+                  "ressource_type": {
+                    "example": "vm",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "ressource_id",
+                  "ressource_type"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Reservation"
+                }
+              }
+            },
+            "description": "Confirmée, consommation définitive."
+          },
+          "409": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Probleme"
+                }
+              }
+            },
+            "description": "Réservation expirée ou déjà libérée."
+          }
+        },
+        "summary": "API-IAM-QUOTA-010 — confirmer, la ressource existe",
+        "tags": [
+          "D · Quotas"
+        ]
+      }
+    },
+    "/quotas": {
+      "get": {
+        "description": "**`restant = limite − consomme − reserve`** — §8.1, et c'est la seule\nformule qui compte.\n\nDeux natures de quota coexistent :\n\n| nature | exemples | comportement |\n|---|---|---|\n| **stock** | `vcpu`, `ram_gb`, `disk_gb`, `vm_count`, `gpu_count`, `gpu_mem_mb` | occupé tant que la ressource existe |\n| **période** | `dev_env_hours_month`, `gpu_hours_month` | se consomme au fil du temps, remis à zéro à l'échéance |\n\n**Un quota de stock seul ne sait pas dire « à la demande ».** Il\nretient la ressource tant que la VM existe, même éteinte. Le quota de\npériode est la seule façon d'exprimer un partage dans le temps : tout\nle monde peut créer, le temps d'exécution est rationné.\n\n## Deux vocabulaires pour les mêmes quotas\n\n**À lire avant d'écrire une ligne de code qui touche aux quotas.** Le\ncontrat et le realm ne les nomment pas pareil, et ce n'était écrit\nnulle part avant la 1.2.0 :\n\n| ressource du contrat | attribut du realm | nature |\n|---|---|---|\n| `vm_count` | `quota-vm` | stock |\n| `vcpu` | `quota-vcpu` | stock |\n| `ram_gb` | `quota-memoire-gio` | stock |\n| `disk_gb` | `quota-disque-gio` | stock |\n| `dev_env_hours_month` | `quota-heures-mois` | période |\n| `gpu_count` | `quota-gpu` — **à 0 dans le realm** | stock |\n| `gpu_mem_mb` | `quota-gpu-memoire-mio` — **à 0** | stock |\n| `gpu_hours_month` | `quota-gpu-heures-mois` — **à 0** | période |\n\n## Les trois portées d'un quota\n\nUne demande doit passer **les trois**, et le refus nomme celle qui a bloqué :\n\n| portée | d'où viennent les limites | absence de limite |\n|---|---|---|\n| `compte` | attributs effectifs (rôle → groupe → dérogation) | **0** : rien n'est accordé |\n| `projet` | le plan du projet, plafonné par son propriétaire | **0** |\n| `ressource` | les **étiquettes** de la ressource (`PATCH /tags/ressource/{id}`), sous les noms du realm | **−1** : pas de limite *à ce niveau* |\n\nUn travail GPU rattaché à une VM (`ressource_portee`) compte contre la VM\n**et** contre le compte **et** contre le projet. Détruire la VM libère ses\ntravaux : `POST /resources/{vm}/release` emporte ce qui dépend d'elle.\n\n**`/quotas` et `/quota-capacity` emploient les noms du contrat.**\n`/subjects/me` rend les attributs sous **les noms du realm**, parce que\nc'est sous ces noms qu'on les lit dans Keycloak et qu'un administrateur\nqui compare les deux écrans doit retrouver les mêmes étiquettes.\n\nUne ressource absente du realm vaut **zéro**, donc toute demande de\nGPU est **refusée**. C'est voulu : on n'accorde jamais une ressource\nqu'on ne sait pas compter.\n\n**La sursouscription est assumée, pas interdite.** IAM applique une\nlimite par compte ; il ne connaît pas le nombre de VM que la\nplateforme portera, et personne ne le connaît — c'est à la demande.\nIAM **expose donc les totaux** (`/quota-aggregates`) pour que la\ncellule Optimisation observe le rapport entre engagé et disponible,\net **propose** (`/quota-proposals`). Elle ne modifie jamais un\nquota elle-même.\n\nUn avertissement `QUOTA_WARNING_80` est publié quand consommé +\nréservé atteint 80 % d'une limite.\n",
+        "operationId": "lireMesQuotas",
+        "parameters": [
+          {
+            "description": "Quotas du projet plutôt que du compte.",
+            "in": "query",
+            "name": "projet",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "examples": {
+                  "inconnu": {
+                    "summary": "un compte auto-inscrit, hors promotion",
+                    "value": {
+                      "correlation_id": "01JB9X2K7M4Q8V0ZC3N5T6R7WE",
+                      "limites": [
+                        {
+                          "consomme": 0,
+                          "limite": 0,
+                          "nature": "stock",
+                          "reserve": 0,
+                          "ressource": "vm_count",
+                          "restant": 0
+                        },
+                        {
+                          "consomme": 0,
+                          "limite": 0,
+                          "nature": "stock",
+                          "reserve": 0,
+                          "ressource": "vcpu",
+                          "restant": 0
+                        },
+                        {
+                          "consomme": 0,
+                          "limite": 0,
+                          "nature": "stock",
+                          "reserve": 0,
+                          "ressource": "ram_gb",
+                          "restant": 0
+                        },
+                        {
+                          "consomme": 0,
+                          "limite": 0,
+                          "nature": "stock",
+                          "reserve": 0,
+                          "ressource": "disk_gb",
+                          "restant": 0
+                        }
+                      ],
+                      "plan": "aucun",
+                      "portee": "compte",
+                      "sujet": "7f1c0e52-2b44-4a90-8d11-0cc4a1b9e3d8"
+                    }
+                  },
+                  "promotion": {
+                    "summary": "un etudiant de GI27, plan de promotion",
+                    "value": {
+                      "correlation_id": "01JB9X2K7M4Q8V0ZC3N5T6R7WC",
+                      "limites": [
+                        {
+                          "consomme": 0,
+                          "limite": 1,
+                          "nature": "stock",
+                          "reserve": 0,
+                          "ressource": "vm_count",
+                          "restant": 1
+                        },
+                        {
+                          "consomme": 0,
+                          "limite": 2,
+                          "nature": "stock",
+                          "reserve": 0,
+                          "ressource": "vcpu",
+                          "restant": 2
+                        },
+                        {
+                          "consomme": 0,
+                          "limite": 2,
+                          "nature": "stock",
+                          "reserve": 0,
+                          "ressource": "ram_gb",
+                          "restant": 2
+                        },
+                        {
+                          "consomme": 0,
+                          "limite": 20,
+                          "nature": "stock",
+                          "reserve": 0,
+                          "ressource": "disk_gb",
+                          "restant": 20
+                        },
+                        {
+                          "consomme": 0,
+                          "limite": 300,
+                          "nature": "periode",
+                          "remise_a_zero_a": "2026-11-01T00:00:00Z",
+                          "reserve": 0,
+                          "ressource": "dev_env_hours_month",
+                          "restant": 300
+                        }
+                      ],
+                      "plan": "promotion",
+                      "portee": "compte",
+                      "sujet": "29acced2-84f7-42a1-9d28-9baa3b403d72"
+                    }
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/Quotas"
+                }
+              }
+            },
+            "description": "Limites, consommation, réservations."
+          },
+          "401": {
+            "$ref": "#/components/responses/NonAuthentifie"
+          }
+        },
+        "summary": "API-IAM-QUOTA-005 — mes limites et ce qu'il me reste",
+        "tags": [
+          "D · Quotas"
+        ]
+      }
+    },
+    "/resources/{idRessource}/release": {
+      "parameters": [
+        {
+          "in": "path",
+          "name": "idRessource",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "post": {
+        "description": "**Le pendant de la confirmation.** Sans cet appel, le quota reste\nconsommé par une VM qui n'existe plus, et l'utilisateur se retrouve\nbloqué sans comprendre pourquoi.\n\nIdempotent. À appeler **après** la destruction effective, jamais\navant.\n",
+        "operationId": "libererRessource",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/CleIdempotence"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Quotas"
+                }
+              }
+            },
+            "description": "Quota rendu."
+          },
+          "404": {
+            "$ref": "#/components/responses/Introuvable"
+          }
+        },
+        "summary": "API-IAM-QUOTA-010 — la ressource a été détruite",
+        "tags": [
+          "D · Quotas"
+        ]
+      }
+    },
+    "/resources/{id}": {
+      "get": {
+        "operationId": "lireRessource",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Succès."
+          },
+          "401": {
+            "$ref": "#/components/responses/NonAuthentifie"
+          },
+          "403": {
+            "$ref": "#/components/responses/Interdit"
+          }
+        },
+        "summary": "Une VM comptée : propriétaire, projet, attributs, droits",
+        "tags": [
+          "G · Attributs et droits"
+        ]
+      }
+    },
+    "/resources/{id}/grants": {
+      "post": {
+        "description": "À un compte, un groupe, ou quiconque porte un attribut. Ni à soi-même, ni la propriété, ni au-dessus de sa capacité ; six mois au plus ; `fin_a` obligatoire pour un compte externe.\n",
+        "operationId": "accorderDroit",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/CleIdempotence"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DroitEntree"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Succès."
+          },
+          "401": {
+            "$ref": "#/components/responses/NonAuthentifie"
+          },
+          "403": {
+            "$ref": "#/components/responses/Interdit"
+          }
+        },
+        "summary": "Prêter CETTE VM",
+        "tags": [
+          "G · Attributs et droits"
+        ]
+      }
+    },
+    "/resources/{id}/grants/{cibleType}/{cible}": {
+      "delete": {
+        "operationId": "retirerDroit",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "cibleType",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "cible",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/CleIdempotence"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Succès."
+          },
+          "401": {
+            "$ref": "#/components/responses/NonAuthentifie"
+          },
+          "403": {
+            "$ref": "#/components/responses/Interdit"
+          }
+        },
+        "summary": "Retirer ce droit",
+        "tags": [
+          "G · Attributs et droits"
+        ]
+      }
+    },
+    "/resources/{id}/quotas": {
+      "get": {
+        "description": "`-1` veut dire « aucune limite **à ce niveau** », pas « illimité » : le compte\net le projet s'appliquent toujours. `consomme` inclut ce que les travaux\nrattachés à cette ressource occupent.\n",
+        "operationId": "quotasRessource",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Succès."
+          },
+          "401": {
+            "$ref": "#/components/responses/NonAuthentifie"
+          },
+          "403": {
+            "$ref": "#/components/responses/Interdit"
+          },
+          "404": {
+            "description": "Aucune ressource vivante sous cet identifiant."
+          }
+        },
+        "summary": "Les limites PROPRES à une ressource",
+        "tags": [
+          "D · Quotas"
+        ]
+      }
+    },
+    "/sts/assume-role": {
+      "post": {
+        "description": "**Deux portes :** l'appelant a le droit d'assumer, ET la confiance du rôle le nomme. Un refus ne dit pas laquelle a fermé, ni si le rôle existe ; la vraie raison est au journal.\n\n**Chaînage :** une session peut en endosser une autre si sa politique l'y autorise. La source reste la personne d'origine, la durée est bornée par une heure ET par ce qu'il reste à la session parente, cinq niveaux au plus. Révoquer un maillon coupe ce qui en descend.\n\n**Sans `Idempotency-Key`**, pour la même raison que `POST /access-keys`.\n",
+        "operationId": "assumerRole",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DemandeAssomption"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Succès."
+          },
+          "401": {
+            "$ref": "#/components/responses/NonAuthentifie"
+          },
+          "403": {
+            "$ref": "#/components/responses/Interdit"
+          }
+        },
+        "summary": "Endosser un rôle : des identifiants temporaires",
+        "tags": [
+          "F · Machines",
+          "clés et sessions"
+        ]
+      }
+    },
+    "/sts/sessions/{id}": {
+      "delete": {
+        "description": "La sienne, ou `admin` celle d'un autre. La bonne fin d'un travail terminé.\n",
+        "operationId": "revoquerSession",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/CleIdempotence"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Succès."
+          },
+          "401": {
+            "$ref": "#/components/responses/NonAuthentifie"
+          },
+          "403": {
+            "$ref": "#/components/responses/Interdit"
+          }
+        },
+        "summary": "Couper UNE session",
+        "tags": [
+          "F · Machines",
+          "clés et sessions"
+        ]
+      }
+    },
+    "/sts/whoami": {
+      "get": {
+        "description": "Sans droit requis, comme `GetCallerIdentity` : c'est la première chose à vérifier quand un refus surprend.\n",
+        "operationId": "quiSuisJe",
+        "responses": {
+          "200": {
+            "description": "Succès."
+          },
+          "401": {
+            "$ref": "#/components/responses/NonAuthentifie"
+          },
+          "403": {
+            "$ref": "#/components/responses/Interdit"
+          }
+        },
+        "summary": "Qui parle, vu du service",
+        "tags": [
+          "F · Machines",
+          "clés et sessions"
+        ]
+      }
+    },
+    "/subjects": {
+      "get": {
+        "description": "Réservé à `admin`. Pagination par curseur.",
+        "operationId": "listerSujets",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "actif",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "in": "query",
+            "name": "role",
+            "schema": {
+              "enum": [
+                "user",
+                "admin"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/Curseur"
+          },
+          {
+            "$ref": "#/components/parameters/Taille"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "correlation_id": {
+                      "$ref": "#/components/schemas/CorrelationId"
+                    },
+                    "curseur_suivant": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "elements": {
+                      "items": {
+                        "$ref": "#/components/schemas/Sujet"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "required": [
+                    "elements",
+                    "correlation_id"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Page de comptes."
+          },
+          "403": {
+            "$ref": "#/components/responses/Interdit"
+          }
+        },
+        "summary": "API-IAM-ADMIN-015 — lister les comptes",
+        "tags": [
+          "C · Sujets et projets"
+        ]
+      },
+      "post": {
+        "description": "Réservé à `admin`. Deux usages : l'import d'une promotion, et\nl'**invité externe** — jury, partenaire — pour qui `expire_a` est\n**obligatoire**.\n\nL'auto-inscription reste ouverte par ailleurs : elle ne passe pas par\ncette API et donne toujours `user` à quota nul.\n",
+        "operationId": "creerSujet",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/CleIdempotence"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "courriel": {
+                    "format": "email",
+                    "type": "string"
+                  },
+                  "expire_a": {
+                    "description": "Date de désactivation automatique.",
+                    "format": "date-time",
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "externe": {
+                    "default": false,
+                    "description": "Si vrai, `expire_a` devient obligatoire.",
+                    "type": "boolean"
+                  },
+                  "groupes": {
+                    "description": "Groupes porteurs de plan à appliquer immédiatement, par\nexemple `promotion-gi27`. **C'est par là qu'une promotion\nentière reçoit son plan sans qu'un `admin` repasse\nderrière chaque compte.**\n\nOmis, le compte n'a que le plancher du rôle `user`, donc\nzéro de tout.\n",
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  },
+                  "identifiant": {
+                    "example": "etu-gi27-042",
+                    "type": "string"
+                  },
+                  "nom": {
+                    "type": "string"
+                  },
+                  "prenom": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "identifiant",
+                  "courriel"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Sujet"
+                }
+              }
+            },
+            "description": "Compte créé, avec `user` et quotas à zéro."
+          },
+          "403": {
+            "$ref": "#/components/responses/Interdit"
+          },
+          "409": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Probleme"
+                }
+              }
+            },
+            "description": "Identifiant ou courriel déjà pris."
+          },
+          "422": {
+            "$ref": "#/components/responses/ContratInvalide"
+          }
+        },
+        "summary": "API-IAM-ADMIN-015 — créer un compte, ou un invité externe",
+        "tags": [
+          "C · Sujets et projets"
+        ]
+      }
+    },
+    "/subjects/me": {
+      "get": {
+        "description": "**C'est ici que la plateforme lit les quotas, pas dans le jeton.**\nLes attributs rendus sont les attributs *effectifs* : ceux du rôle,\nécrasés par ceux posés sur le compte.\n",
+        "operationId": "lireMonSujet",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Sujet"
+                }
+              }
+            },
+            "description": "Identité effective."
+          },
+          "401": {
+            "$ref": "#/components/responses/NonAuthentifie"
+          }
+        },
+        "summary": "Mon identité effective",
+        "tags": [
+          "C · Sujets et projets"
+        ]
+      }
+    },
+    "/subjects/{idSujet}": {
+      "delete": {
+        "description": "**Désactive, n'efface pas.** L'historique d'audit doit rester\nexploitable : c'est une règle du §8.3, pas une préférence.\n\nEffets immédiats : sessions fermées, jetons de renouvellement\nrévoqués, toute décision refusée avec `compte_revoque`. Les projets\ndont il est propriétaire restent **à réattribuer** — ils ne sont ni\ndétruits ni transférés automatiquement, et l'API les énumère dans la\nréponse pour que personne ne les oublie.\n",
+        "operationId": "desactiverSujet",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/CleIdempotence"
+          },
+          {
+            "in": "query",
+            "name": "motif",
+            "required": true,
+            "schema": {
+              "maxLength": 500,
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "correlation_id": {
+                      "$ref": "#/components/schemas/CorrelationId"
+                    },
+                    "projets_a_reattribuer": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "sujet": {
+                      "$ref": "#/components/schemas/Sujet"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Compte désactivé."
+          },
+          "403": {
+            "$ref": "#/components/responses/Interdit"
+          }
+        },
+        "summary": "API-IAM-ADMIN-015 — désactiver un compte",
+        "tags": [
+          "C · Sujets et projets"
+        ]
+      },
+      "get": {
+        "description": "Réservé à `admin`. Un `user` ne lit que lui-même.",
+        "operationId": "lireSujet",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Sujet"
+                }
+              }
+            },
+            "description": "Identité effective."
+          },
+          "403": {
+            "$ref": "#/components/responses/Interdit"
+          },
+          "404": {
+            "$ref": "#/components/responses/Introuvable"
+          }
+        },
+        "summary": "Identité effective d'un autre compte",
+        "tags": [
+          "C · Sujets et projets"
+        ]
+      },
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/IdSujet"
+        }
+      ]
+    },
+    "/subjects/{idSujet}/attributes": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/IdSujet"
+        }
+      ],
+      "patch": {
+        "description": "**C'est ici qu'un administrateur débloque un compte neuf.** Un compte\nissu de l'inscription a tout à zéro ; cet appel lui donne de quoi\nexister.\n\nSeuls les attributs cités changent. **Baisser une limite sous le\nconsommé est accepté** : plus rien ne peut être créé, mais rien n'est\ndétruit — §8.1, et c'est délibéré, la décision de supprimer appartient\nau propriétaire.\n\nUne **dérogation** se pose ici avec une `fin_a` : c'est une\napprobation tracée, jamais une modification silencieuse du plan.\n",
+        "operationId": "ajusterAttributs",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/CleIdempotence"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "example": {
+                "attributs": {
+                  "disk_gb": "60",
+                  "peut-creer-vm": "true",
+                  "ram_gb": "8",
+                  "vcpu": "4",
+                  "vm_count": "2"
+                },
+                "motif": "TP reseau, promotion GI27"
+              },
+              "schema": {
+                "properties": {
+                  "attributs": {
+                    "additionalProperties": {
+                      "type": "string"
+                    },
+                    "type": "object"
+                  },
+                  "fin_a": {
+                    "description": "Dérogation temporaire. Au-delà, retour aux valeurs du rôle.",
+                    "format": "date-time",
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "motif": {
+                    "maxLength": 500,
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "attributs",
+                  "motif"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Sujet"
+                }
+              }
+            },
+            "description": "Attributs mis à jour."
+          },
+          "403": {
+            "$ref": "#/components/responses/Interdit"
+          },
+          "422": {
+            "$ref": "#/components/responses/ContratInvalide"
+          }
+        },
+        "summary": "Accorder ou retirer des quotas et des droits",
+        "tags": [
+          "C · Sujets et projets"
+        ]
+      }
+    },
+    "/subjects/{idSujet}/quotas": {
+      "get": {
+        "description": "Réservé à `admin`, et en **lecture seule** pour la cellule\nOptimisation : elle propose des profils, elle ne modifie jamais un\nquota (§8.1).\n",
+        "operationId": "lireQuotasSujet",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Quotas"
+                }
+              }
+            },
+            "description": "Quotas du compte."
+          },
+          "403": {
+            "$ref": "#/components/responses/Interdit"
+          }
+        },
+        "summary": "API-IAM-QUOTA-005 — quotas d'un autre compte",
+        "tags": [
+          "D · Quotas"
+        ]
+      },
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/IdSujet"
+        }
+      ]
+    },
+    "/subjects/{idSujet}/roles": {
+      "get": {
+        "operationId": "lireRoles",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "correlation_id": {
+                      "$ref": "#/components/schemas/CorrelationId"
+                    },
+                    "roles": {
+                      "items": {
+                        "$ref": "#/components/schemas/RoleAttribue"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Rôles et validité."
+          }
+        },
+        "summary": "API-IAM-ROLE-006 — rôles d'un compte, avec leurs dates",
+        "tags": [
+          "C · Sujets et projets"
+        ]
+      },
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/IdSujet"
+        }
+      ],
+      "put": {
+        "description": "Réservé à `admin`, **second facteur de moins de quinze minutes\nexigé**. Remplacement total : la liste envoyée devient la liste\neffective.\n\nDeux interdits absolus, repris du §8.2 :\n**personne ne s'attribue de rôle**, et **personne n'attribue un rôle\nsupérieur au sien**. Les deux sont refusés avec `auto_attribution`\net `elevation_interdite`.\n\nUne attribution peut porter `debut_a` et `fin_a`. **À `fin_a` le rôle\ncesse de compter pour les décisions**, même si la projection dans\nl'IdP n'est pas encore nettoyée. L'événement `ROLE_EXPIRED` est\npublié.\n\nRetirer `user` prive de tout, y compris de la connexion : une liste\nvide est refusée.\n",
+        "operationId": "definirRoles",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/CleIdempotence"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "example": {
+                "motif": "responsable de salle, annee scolaire 2026-2027",
+                "roles": [
+                  {
+                    "nom": "user"
+                  },
+                  {
+                    "fin_a": "2027-07-01T00:00:00Z",
+                    "nom": "admin"
+                  }
+                ]
+              },
+              "schema": {
+                "properties": {
+                  "motif": {
+                    "maxLength": 500,
+                    "type": "string"
+                  },
+                  "roles": {
+                    "items": {
+                      "$ref": "#/components/schemas/RoleAttribue"
+                    },
+                    "minItems": 1,
+                    "type": "array"
+                  }
+                },
+                "required": [
+                  "roles",
+                  "motif"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Sujet"
+                }
+              }
+            },
+            "description": "Rôles mis à jour."
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Probleme"
+                }
+              }
+            },
+            "description": "Interdit, second facteur trop ancien, auto-attribution, ou\nélévation au-dessus de son propre rôle.\n"
+          },
+          "422": {
+            "$ref": "#/components/responses/ContratInvalide"
+          }
+        },
+        "summary": "API-IAM-ROLE-006 — fixer les rôles d'un compte",
+        "tags": [
+          "C · Sujets et projets"
+        ]
+      }
+    },
+    "/tags/{portee}/{cible}": {
+      "get": {
+        "operationId": "lireAttributs",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "portee",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "cible",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Succès."
+          },
+          "401": {
+            "$ref": "#/components/responses/NonAuthentifie"
+          },
+          "403": {
+            "$ref": "#/components/responses/Interdit"
+          }
+        },
+        "summary": "Les attributs d une personne, d un projet ou d une VM",
+        "tags": [
+          "G · Attributs et droits"
+        ]
+      },
+      "patch": {
+        "description": "Sur une personne : `admin`, second facteur, **jamais sur soi-même**. Sur un projet ou une VM : son propriétaire. Une valeur vide retire. Le préfixe `gandal` est réservé.\nDans une politique : `gandal:sujet:attr:<cle>`, `gandal:projet:attr:<cle>`, `gandal:ressource:attr:<cle>`, aussi comme variable à droite d'une condition.\n",
+        "operationId": "poserAttributs",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "portee",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "cible",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/CleIdempotence"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AttributsEntree"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Succès."
+          },
+          "401": {
+            "$ref": "#/components/responses/NonAuthentifie"
+          },
+          "403": {
+            "$ref": "#/components/responses/Interdit"
+          }
+        },
+        "summary": "Poser ou retirer des attributs",
+        "tags": [
+          "G · Attributs et droits"
+        ]
+      }
+    }
+  },
+  "security": [
+    {
+      "jetonPorteur": []
+    },
+    {
+      "signatureGandal4": []
+    }
+  ],
+  "servers": [
+    {
+      "description": "Service de décision IAM — à construire",
+      "url": "https://10.30.0.30:8081/v1"
+    },
+    {
+      "description": "Fournisseur d'identité Keycloak — en service",
+      "url": "https://10.30.0.30:8443/realms/gandal"
+    }
+  ],
+  "tags": [
+    {
+      "description": "Fourni par Keycloak. Décrit pour mémoire.",
+      "name": "A · Authentification"
+    },
+    {
+      "description": "Une action, une ressource, un verdict. L'appel fait avant toute action.",
+      "name": "B · Décision"
+    },
+    {
+      "description": "Documents de politique, attachements, simulation.",
+      "name": "E · Politiques"
+    },
+    {
+      "description": "Attributs libres, droits sur une ressource, comptes créés dans un projet.",
+      "name": "G · Attributs et droits"
+    },
+    {
+      "description": "Identités de machine, clés d'accès signées, rôles assumables, sessions temporaires.",
+      "name": "F · Machines, clés et sessions"
+    },
+    {
+      "description": "Comptes, rôles datés, projets, membres, invitations et approbations.",
+      "name": "C · Sujets et projets"
+    },
+    {
+      "description": "Limites, consommation, et réservation en deux temps.",
+      "name": "D · Quotas"
+    },
+    {
+      "description": "Ce qui s'est passé, et qui l'a fait.",
+      "name": "Journal"
+    }
+  ]
+}

@@ -27,7 +27,10 @@ _JSON_TO_PY: dict[str, tuple[type, ...]] = {
     "array": (list,),
     "object": (dict, BaseModel),
 }
-_CALL = re.compile(r'request\(\s*"(GET|POST|PUT|PATCH|DELETE)",\s*f?"([^"]+)"')
+# request(...) direct, ou _req(...) des cellules qui factorisent le transport (IAM).
+_CALL = re.compile(
+    r'(?:request|_req)\(\s*"(GET|POST|PUT|PATCH|DELETE)",\s*f?"([^"]+)"'
+)
 _PLACEHOLDER = re.compile(r"\{[^}]*\}")
 
 
@@ -83,12 +86,16 @@ class OpenApiContract:
         return self.schemas[ref.rsplit("/", 1)[-1]] if ref else prop
 
     def _json_types(self, prop: dict) -> set[str]:
-        """Types JSON admis par une propriete (anyOf aplati, null compris)."""
+        """Types JSON admis par une propriete (anyOf aplati, null compris).
+
+        OpenAPI 3.1 autorise `type: [string, "null"]` (liste) en plus de anyOf.
+        """
         if "anyOf" in prop:
             return set().union(*(self._json_types(option) for option in prop["anyOf"]))
         prop = self._resolve(prop)
         if "type" in prop:
-            return {prop["type"]}
+            raw = prop["type"]
+            return set(raw) if isinstance(raw, list) else {raw}
         if "enum" in prop:
             return {"string"}
         return {"object"}
@@ -128,10 +135,12 @@ class OpenApiContract:
 
     def missing_routes(self, sources: list[Path] | None = None) -> list[str]:
         """Routes publiees sans helper dans les sources du SDK indiquees (toutes par defaut)."""
+        http_methods = {"get", "post", "put", "patch", "delete", "head", "options"}
         published = {
             (method.upper(), _PLACEHOLDER.sub("{}", path))
             for path, operations in self.spec["paths"].items()
             for method in operations
+            if method.lower() in http_methods
         }
         called: set[tuple[str, str]] = set()
         for source in sources or list(SDK_SOURCES.rglob("*.py")):

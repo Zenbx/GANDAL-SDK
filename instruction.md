@@ -29,12 +29,13 @@ et une VM est clonée, configurée et démarrée sur le pool.
 
 | Maillon | État |
 | --- | --- |
-| SDK Python (GANDAL-SDK) | v0.4.0 : hyperviseur publié ; validé faux pool + pool réel (2026-11-02) |
+| SDK Python (GANDAL-SDK) | v0.5.0 : hyperviseur + IAM (contrat 1.7.0, 70 routes) |
 | Cellule hyperviseur (gandal-hypervisor) | complète ; testée faux pool **et** pool réel (bac à sable) |
+| Cellule IAM (depot `iam`) | contrat 1.7.0 branché dans le SDK ; decision-service + Keycloak |
 | Pool XCP-ng réel | premier passage SDK réussi ; snapshot homonyme renommé `gandal-reference-snap` |
 | iaas-api (équipe backend) | publie seulement l'authentification et les profils ; pas encore branché à la cellule |
 
-**Prochaine priorité :** publier / consolider (§6), puis R1, ops persistantes, CI cellule.
+**Prochaine priorité :** publier 0.5.0, brancher iaas-api sur IAM + hyperviseur, puis R1 / ops persistantes.
 
 ## 3. Les dépôts
 
@@ -50,7 +51,8 @@ Architecture :
 
 ```
 SDK (client.hypervisor) ──HTTP + jeton──► gandal-hypervisor ──XAPI/TLS──► maître du pool ──► rem / jade / emilia
-SDK (client.orchestration) ──HTTP + JWT──► iaas-api            (plus tard : iaas-api ──► gandal-hypervisor)
+SDK (client.iam)        ──HTTPS + Bearer + CA──► decision-service :8081 / Keycloak :8443
+SDK (client.orchestration) ──HTTP + JWT──► iaas-api            (plus tard : iaas-api ──► cellules)
 ```
 
 Les dépôts doivent être clonés **côte à côte** : les scripts les trouvent par `../`.
@@ -160,26 +162,17 @@ IP (agent invité dans le modèle), comportement de `clean_shutdown`.
 
 ## 6. Ensuite, par ordre de priorité
 
-1. **Publier le SDK 0.4.0** une fois le passage réel réussi (procédure :
-   `docs/RELEASING.md`, canevas : `.github/RELEASE_TEMPLATE.md`, entrées déjà
-   prêtes dans la section « Non publié » de `CHANGELOG.md`). Y consigner les
-   résultats du pool réel.
-2. **Règle R1 à la création** : démarrer la VM sur l'hôte qui porte son disque
-   système (`VM.start_on`). Aujourd'hui XAPI choisit seul ; gandal-ctl signale
-   l'écart a posteriori. Voir `gandal-ctl/invariants.py`.
-3. **Historique des opérations persistant** (SQLite) : un redémarrage de la
-   cellule perd aujourd'hui les opérations en cours et les créations échouées.
-4. **CI du SDK contre la cellule** : impossible tant que gandal-hypervisor est
-   privé. Soit le rendre public, soit ajouter un jeton GitHub en lecture seule
-   (limité à ce dépôt) dans les secrets de Zenbx/GANDAL-SDK, puis un job qui lance
-   `scripts/run_hypervisor_integration.sh`.
-5. **Console** : nécessite un relais authentifié ; l'URL de console XAPI embarque
-   une session root et ne doit **jamais** être renvoyée au client.
-6. **Brancher iaas-api sur la cellule** : à proposer à l'équipe backend (leur port
-   hyperviseur appellerait `gandal-hypervisor`). Le contrat est
-   `openapi/gandal-hypervisor.json`.
-7. Plus tard : PyPI pour le SDK Python ; SDK TypeScript (npm) généré depuis
-   l'OpenAPI ; quotas et sortie du bac à sable (`GANDAL_HV_POLICY=unrestricted`).
+1. **Publier le SDK 0.5.0** (IAM + hyperviseur) : procédure `docs/RELEASING.md`,
+   canevas `.github/RELEASE_TEMPLATE.md`.
+2. **Tests d'intégration IAM** contre decision-service + Keycloak réels (miroir
+   de `scripts/run_hypervisor_integration.sh`), avec `gandal-ca.crt`.
+3. **Brancher iaas-api** sur `client.iam` / ports IAM et sur gandal-hypervisor.
+4. **Règle R1 à la création** : démarrer la VM sur l'hôte qui porte son disque
+   système (`VM.start_on`). Voir `gandal-ctl/invariants.py`.
+5. **Historique des opérations persistant** (SQLite) côté hyperviseur.
+6. **CI du SDK contre la cellule** hyperviseur (dépôt encore privé).
+7. **Console** : relais authentifié ; jamais renvoyer une URL de session root XAPI.
+8. Plus tard : PyPI ; SDK TypeScript ; sortie du bac à sable hyperviseur.
 
 ## 7. Règles de travail
 

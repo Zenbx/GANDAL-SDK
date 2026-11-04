@@ -108,6 +108,28 @@ def test_fastapi_detail_errors_get_code_from_status(
 
 
 @respx.mock
+def test_problem_json_rfc9457() -> None:
+    """Une erreur application/problem+json (IAM) devient GandalApiError."""
+    respx.get("http://example.test/x").respond(
+        403,
+        headers={"content-type": "application/problem+json"},
+        json={
+            "type": "https://gandal.local/problems/interdit",
+            "title": "Interdit",
+            "status": 403,
+            "detail": "capacite insuffisante",
+            "correlation_id": "01JB9X2K7M4Q8V0ZC3N5T6R7W8",
+        },
+    )
+    transport = HttpTransport("http://example.test", retry=RetryPolicy(max_attempts=1))
+    with pytest.raises(GandalApiError) as caught:
+        transport.request("GET", "/x")
+    assert caught.value.code == "interdit"
+    assert caught.value.message == "capacite insuffisante"
+    assert caught.value.details["title"] == "Interdit"
+
+
+@respx.mock
 def test_fastapi_validation_errors_kept_in_details() -> None:
     """Un 422 de FastAPI garde la liste des champs fautifs dans details."""
     errors = [

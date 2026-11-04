@@ -18,9 +18,15 @@ Exemple de fichier :
     token = eyJhbGciOi...
     hypervisor_endpoint = http://127.0.0.1:8770
     hypervisor_token = ...
+    iam_endpoint = https://10.30.0.30:8081/v1
+    iam_token = ...
+    iam_ca = ~/.gandal/gandal-ca.crt
 
 La cellule hyperviseur suit le meme ordre avec GANDAL_HYPERVISOR_ENDPOINT,
 GANDAL_HYPERVISOR_TOKEN et les cles hypervisor_endpoint / hypervisor_token.
+
+La cellule IAM suit le meme ordre avec GANDAL_IAM_ENDPOINT, GANDAL_IAM_TOKEN,
+GANDAL_IAM_CA et les cles iam_endpoint / iam_token / iam_ca.
 """
 
 from __future__ import annotations
@@ -38,12 +44,15 @@ DEFAULT_PROFILE = "default"
 
 @dataclass(frozen=True)
 class Credentials:
-    """Endpoint de l'API et jeton Bearer eventuel."""
+    """Endpoint de l'API et jeton Bearer eventuel, plus les cellules branchees."""
 
     endpoint: str
     token: str | None = field(default=None, repr=False)  # jamais affiche
     hypervisor_endpoint: str | None = None
     hypervisor_token: str | None = field(default=None, repr=False)
+    iam_endpoint: str | None = None
+    iam_token: str | None = field(default=None, repr=False)
+    iam_ca: str | None = None
 
 
 def default_credentials_path(environ: Mapping[str, str] | None = None) -> Path:
@@ -65,6 +74,13 @@ def _read_profile(path: Path, profile: str, *, required: bool) -> Mapping[str, s
             raise GandalError(f"Profil '{profile}' absent de {path}.")
         return {}
     return parser[profile]
+
+
+def _expand_path(value: str | None) -> str | None:
+    """Developpe ~ dans un chemin de certificat, sans toucher aux autres valeurs."""
+    if not value:
+        return None
+    return str(Path(value).expanduser())
 
 
 def resolve_credentials(
@@ -101,4 +117,7 @@ def resolve_credentials(
         hypervisor_token=env.get("GANDAL_HYPERVISOR_TOKEN")
         or file_values.get("hypervisor_token")
         or None,
+        iam_endpoint=env.get("GANDAL_IAM_ENDPOINT") or file_values.get("iam_endpoint") or None,
+        iam_token=env.get("GANDAL_IAM_TOKEN") or file_values.get("iam_token") or None,
+        iam_ca=_expand_path(env.get("GANDAL_IAM_CA") or file_values.get("iam_ca")),
     )

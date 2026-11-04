@@ -11,21 +11,15 @@ from gandal_sdk.cells.storage import StorageCell, StorageRef, StorageSpec
 from gandal_sdk.errors import CellUnavailable
 
 
-def test_iam_methods_raise() -> None:
-    """Toutes les operations IAM stubbees echouent clairement."""
+def test_iam_unconfigured_raises() -> None:
+    """Sans endpoint IAM, les operations levent CellUnavailable."""
     cell = IamCell()
     with pytest.raises(CellUnavailable):
-        cell.validate_token("t")
+        cell.decide({"action": "vm:create", "ressource": {"type": "vm"}})
     with pytest.raises(CellUnavailable):
-        cell.get_user("u")
+        cell.list_subjects()
     with pytest.raises(CellUnavailable):
-        cell.get_rights("u", "p")
-    with pytest.raises(CellUnavailable):
-        cell.list_projects("u")
-    with pytest.raises(CellUnavailable):
-        cell.list_members("p")
-    with pytest.raises(CellUnavailable):
-        cell.invite_user("u", "p", ["vm.view"])
+        cell.get_me()
 
 
 def test_hypervisor_methods_raise() -> None:

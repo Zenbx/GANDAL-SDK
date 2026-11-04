@@ -60,13 +60,20 @@ class HttpTransport:
         client: httpx.Client | None = None,
         retry: RetryPolicy | None = None,
         sleep: Callable[[float], None] = time.sleep,
+        verify: bool | str = True,
     ) -> None:
-        """Ouvre un client httpx pointe sur base_url, ou reutilise celui fourni."""
+        """Ouvre un client httpx pointe sur base_url, ou reutilise celui fourni.
+
+        verify : True (CA systeme), False (TLS non verifie), ou chemin vers un
+        fichier de certificats (ex. gandal-ca.crt pour la cellule IAM).
+        """
         self.base_url = base_url.rstrip("/")
         self.retry = retry or RetryPolicy()
         self.sleep = sleep
         self._owns_client = client is None
-        self._client = client or httpx.Client(base_url=self.base_url, timeout=timeout)
+        self._client = client or httpx.Client(
+            base_url=self.base_url, timeout=timeout, verify=verify
+        )
         self._token: str | None = None
 
     def set_token(self, token: str | None) -> None:
@@ -133,7 +140,8 @@ class HttpTransport:
             return None
         content_type = response.headers.get("content-type", "")
         body: Any
-        if "application/json" in content_type:
+        # application/json et application/problem+json (RFC 9457, cellule IAM).
+        if "json" in content_type:
             body = response.json()
         else:
             body = response.text or None
@@ -151,6 +159,16 @@ class HttpTransport:
                 code = str(err.get("code") or code)
                 message = str(err.get("message") or message)
                 details = err.get("details")
+            elif "type" in body and "title" in body:
+                # RFC 9457 : type URI + title + detail + correlation_id.
+                type_uri = str(body.get("type") or "")
+                code = type_uri.rstrip("/").rsplit("/", 1)[-1] or str(body["title"])
+                message = str(detail) if isinstance(detail, str) else str(body["title"])
+                details = {
+                    k: body[k]
+                    for k in ("type", "title", "status", "correlation_id")
+                    if k in body
+                }
             elif isinstance(detail, str):
                 message = detail
             elif detail is not None:

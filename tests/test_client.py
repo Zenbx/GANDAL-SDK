@@ -48,10 +48,10 @@ def test_orchestration_generic_get_prefixes_api_v1() -> None:
 
 
 def test_cell_stubs_raise_unavailable() -> None:
-    """Chaque cellule stub leve CellUnavailable."""
+    """Chaque cellule sans endpoint leve CellUnavailable."""
     with GandalClient("http://example.test") as client:
         with pytest.raises(CellUnavailable):
-            client.iam.login("a@b.c", "x")
+            client.iam.get_me()
         with pytest.raises(CellUnavailable):
             from gandal_sdk.cells.hypervisor import VmSpec
 

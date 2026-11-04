@@ -1,4 +1,4 @@
-"""Sous-clients des cellules GANDAL (stubs tant que leurs API ne sont pas livres)."""
+"""Sous-clients des cellules GANDAL (IAM et hyperviseur livres ; autres en stub)."""
 
 from gandal_sdk.cells.dns import DnsCell
 from gandal_sdk.cells.hypervisor import HypervisorCell

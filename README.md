@@ -5,7 +5,9 @@ SDK Python pour les **apps externes** de la plateforme GANDAL.
 Il expose un client unique (`GandalClient`) qui parle :
 
 - a l'API d'orchestration (`/api/v1`) avec des **helpers typés** ;
-- aux services des autres cellules (IAM, hyperviseur, reseau, stockage, DNS, notifications) au fur et a mesure qu'ils sont livres (stubs pour l'instant).
+- aux cellules **IAM** (decision-service + OIDC) et **hyperviseur** (pool XCP-ng) ;
+- aux autres cellules (reseau, stockage, DNS, notifications) au fur et a mesure
+  qu'elles sont livrees (stubs pour l'instant).
 
 Le SDK n'est pas un serveur : il s'installe dans l'app cliente et appelle les services deja deployes.
 
@@ -63,6 +65,11 @@ les ecrire dans le code, dans cet ordre : arguments, variables
 [default]
 endpoint = http://localhost:8000
 token = eyJhbGciOi...
+hypervisor_endpoint = http://127.0.0.1:8770
+hypervisor_token = ...
+iam_endpoint = https://10.30.0.30:8081/v1
+iam_token = ...
+iam_ca = ~/.gandal/gandal-ca.crt
 ```
 
 ```python
@@ -120,6 +127,49 @@ except WaiterTimeout:
 
 `unknown` n'est jamais traite comme un succes. Chaque waiter accepte `delay=`
 et `max_attempts=`.
+
+## Cellule IAM : decisions, sujets, projets, quotas
+
+`client.iam` parle au service de decision (familles B-G) et aux endpoints OIDC
+(famille A) du contrat `openapi/gandal-iam.json` (v1.7.0). Sans endpoint
+configure, chaque appel leve `CellUnavailable`. Les erreurs IAM sont en
+`application/problem+json` (RFC 9457) et deviennent des `GandalApiError`.
+
+```python
+from gandal_sdk import GandalClient
+from gandal_sdk.cells.iam import Capacite, DemandeDecision, DemandeRessource
+
+client = GandalClient(
+    "http://localhost:8000",
+    cell_urls={"iam": "https://10.30.0.30:8081/v1"},
+    cell_tokens={"iam": "<jeton OIDC ou cle machine>"},
+    cell_verify={"iam": "/chemin/vers/gandal-ca.crt"},
+)
+# ou GandalClient.from_env() avec GANDAL_IAM_ENDPOINT / GANDAL_IAM_TOKEN / GANDAL_IAM_CA
+
+me = client.iam.get_me()
+decision = client.iam.decide(
+    DemandeDecision(
+        action="vm:create",
+        ressource=DemandeRessource(type="vm", projet="prj_01"),
+        contexte={"ram_gb": 2},
+    )
+)
+assert decision.decision.value == "permit"
+
+reservation = client.iam.reserve_quota(ressources={"vm_count": 1}, projet="prj_01")
+# ... creer la ressource ...
+client.iam.commit_reservation(reservation.id, ressource_id="vm-9")
+```
+
+Les ecritures envoient une `Idempotency-Key` (generee si absente), sauf
+`create_access_key` et `assume_role` (le secret ne doit pas etre rememorise).
+
+Synchroniser l'instantane depuis le depot iam :
+
+```bash
+python scripts/sync_openapi.py --service gandal-iam --yaml ../iam/iam/contracts/openapi-iam.yaml
+```
 
 ## Cellule hyperviseur : les VM du pool XCP-ng
 
@@ -183,7 +233,7 @@ Les methodes generiques `get/post/put/patch/delete` restent disponibles en echap
 | Module | Statut |
 | --- | --- |
 | `client.orchestration` | Disponible (helpers typés `/api/v1`) |
-| `client.iam` | Stub - en attente de l'API cellule |
+| `client.iam` | Disponible ; contrat 1.7.0 (70 routes, familles A-G) |
 | `client.hypervisor` | Disponible ; valide contre faux pool et pool XCP-ng reel (bac a sable) |
 | `client.network` | Stub - en attente de l'API cellule |
 | `client.storage` | Stub - en attente de l'API cellule |

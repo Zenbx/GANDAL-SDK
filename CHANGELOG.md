@@ -6,6 +6,27 @@ version, migration comprise, est dans `docs/releases/`.
 
 ## [Non publié]
 
+## [0.5.0] - 2026-11-04
+
+Notes complètes : [docs/releases/v0.5.0.md](docs/releases/v0.5.0.md).
+
+### Ajouté
+
+- `client.iam` fonctionnel sur le contrat IAM 1.7.0 (70 routes) : décisions,
+  sujets, projets, accès, quotas/réservations, machines/clés/STS, politiques,
+  ressources/tags, OIDC/JWKS.
+- `GANDAL_IAM_ENDPOINT` / `GANDAL_IAM_TOKEN` / `GANDAL_IAM_CA` et clés de profil
+  `iam_endpoint` / `iam_token` / `iam_ca` ; `cell_verify` pour le CA TLS.
+- Instantané `openapi/gandal-iam.json`, test de contrat, mapping RFC 9457
+  (`application/problem+json`) dans le transport HTTP.
+- `scripts/sync_openapi.py --service gandal-iam --yaml …`.
+
+### Modifié (incompatible)
+
+- L'ancien stub `IamCell` (`login`, `validate_token`, `get_rights`…) est remplacé
+  par l'API alignée sur le contrat (ex. `decide`, `get_me`, `reserve_quota`).
+  Sans endpoint IAM, les appels lèvent toujours `CellUnavailable`.
+
 ## [0.4.0] - 2026-11-02
 
 Notes complètes : [docs/releases/v0.4.0.md](docs/releases/v0.4.0.md).
@@ -86,6 +107,7 @@ Notes complètes : [docs/releases/v0.3.0.md](docs/releases/v0.3.0.md).
 - Squelette du SDK : `GandalClient`, transport HTTP, `GandalApiError`, stubs des
   cellules IAM, hyperviseur, réseau, stockage, DNS et notifications.
 
+[0.5.0]: https://github.com/Zenbx/GANDAL-SDK/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/Zenbx/GANDAL-SDK/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/Zenbx/GANDAL-SDK/compare/e4d93b9...v0.3.0
 [0.2.0]: https://github.com/Zenbx/GANDAL-SDK/commit/e4d93b9
