@@ -44,6 +44,11 @@ class FauxIam:
     def release_resource(self, resource_id, **kw):
         self.journal.append(("release_resource", {"id": resource_id}))
 
+    def resize_resource(self, resource_id, quantites, **kw):
+        self.journal.append(("resize", {"id": resource_id,
+                                        "quantites": dict(quantites)}))
+        return self._R(resource_id)
+
     def etapes(self) -> list[str]:
         return [nom for nom, _ in self.journal]
 
@@ -124,14 +129,39 @@ def test_sans_sujet_on_refuse():
         GardeIam(FauxIam(), sujet="")
 
 
-# ─── vm:update decide mais ne compte pas, et c est volontaire ───────────────
+# ─── vm:update decide ET compte, depuis /resources/{id}/resize ──────────────
 
-def test_modification_decide_sans_toucher_au_quota():
+def test_modification_decide_puis_redimensionne():
+    """Elle ne comptait pas : le cout du catalogue ajoute et ne retranche pas,
+    donc compter un redimensionnement par le chemin des reservations aurait
+    compte la taille ENTIERE au lieu de l ecart."""
     iam = FauxIam()
     g = GardeIam(iam, sujet="etu-1", projet="p-vision")
     g.autoriser_modification("poste-1", vcpu=4, ram_gb=8, disk_gb=40)
-    assert iam.etapes() == ["decide"]
+    # L ORDRE : decider d abord. Redimensionner avant de decider changerait le
+    # compteur pour une demande qui va etre refusee.
+    assert iam.etapes() == ["decide", "resize"]
     assert iam.journal[0][1]["action"] == "vm:update"
+    _, r = iam.journal[1]
+    assert r["id"] == "poste-1"
+    # Des quantites ABSOLUES, pas un ecart : c est IAM qui soustrait.
+    assert r["quantites"] == {"vcpu": 4, "ram_gb": 8, "disk_gb": 40}
+
+
+def test_un_refus_de_modification_ne_redimensionne_rien():
+    iam = FauxIam(decision="deny")
+    with pytest.raises(DecisionRefusee):
+        GardeIam(iam, sujet="etu-1").autoriser_modification(
+            "poste-1", vcpu=99, ram_gb=99, disk_gb=99)
+    assert iam.etapes() == ["decide"]
+
+
+def test_redimensionner_laisse_les_cles_absentes_tranquilles():
+    """Un appelant qui ne parle que de la memoire ne doit pas effacer le vCPU."""
+    iam = FauxIam()
+    GardeIam(iam, sujet="etu-1").redimensionner("poste-1", {"ram_gb": 16})
+    assert iam.journal == [("resize", {"id": "poste-1",
+                                       "quantites": {"ram_gb": 16}})]
 
 
 def test_reboot_exige_la_plus_forte_des_deux():

@@ -145,17 +145,34 @@ class GardeIam:
 
     def autoriser_modification(self, id_vm: str, *, vcpu: int, ram_gb: int,
                                disk_gb: int) -> str:
-        """Décide seulement. **NE MET PAS A JOUR LE QUOTA**, et il faut le savoir.
+        """Décide, **puis** redimensionne la ressource dans IAM.
 
-        Le coût du catalogue IAM ajoute : il sait retenir 2 vCPU de plus, pas
-        rendre 2 vCPU de moins. Compter un redimensionnement par ce chemin
-        compterait la taille entière au lieu de l écart, donc deux
-        agrandissements de suite compteraient deux fois la VM. Tant qu IAM n a
-        pas de point d API « redimensionner une ressource », cette méthode
-        décide et ne compte pas.
+        ELLE COMPTE MAINTENANT. Elle ne comptait pas : le coût du catalogue IAM
+        *ajoute*, il ne retranche pas, donc compter un redimensionnement par le
+        chemin des réservations aurait compté la taille **entière** au lieu de
+        l écart — deux agrandissements de suite auraient compté deux fois la VM,
+        et réduire une VM aurait laissé du quota consommé à vide.
+
+        `POST /resources/{id}/resize` prend les quantités **absolues** et c est
+        IAM qui soustrait, dans sa transaction. Lui faire porter l écart
+        reviendrait à faire calculer par l appelant l arithmétique sur laquelle
+        la décision repose.
+
+        L ORDRE : décider d abord. Redimensionner avant de décider changerait le
+        compteur pour une demande qui va être refusée.
         """
-        return self.decider("vm:update", self._ressource("vm", id_vm),
-                            {"vcpu": vcpu, "ram_gb": ram_gb, "disk_gb": disk_gb})
+        motif = self.decider("vm:update", self._ressource("vm", id_vm),
+                             {"vcpu": vcpu, "ram_gb": ram_gb, "disk_gb": disk_gb})
+        self.redimensionner(id_vm, {"vcpu": vcpu, "ram_gb": ram_gb,
+                                    "disk_gb": disk_gb})
+        return motif
+
+    def redimensionner(self, id_ressource: str, quantites: dict[str, int]) -> None:
+        """Quantités **absolues**, IAM soustrait. Les clés absentes restent
+        inchangées : un appelant qui ne parle que de la mémoire ne doit pas
+        effacer le compte de vCPU au passage."""
+        self.iam.resize_resource(id_ressource, quantites,
+                                 correlation_id=self.correlation_id)
 
     def autoriser_suppression(self, id_vm: str) -> str:
         return self.decider("vm:delete", self._ressource("vm", id_vm))

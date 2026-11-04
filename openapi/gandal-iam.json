@@ -4226,6 +4226,76 @@
         ]
       }
     },
+    "/resources/{id}/resize": {
+      "post": {
+        "description": "Comble le trou de `vm:update`, qui **décidait sans compter**. Le coût du\ncatalogue *ajoute* : il sait retenir 2 vCPU de plus, pas rendre 2 vCPU de\nmoins. Passer une VM de 4 à 2 vCPU par le chemin des réservations\nlaissait donc 2 vCPU consommés à vide, et l'agrandir deux fois de suite\ncomptait deux fois la taille entière au lieu des deux écarts.\n\n**Les quantités sont ABSOLUES, pas un écart.** L'appelant sait ce que la\nressource doit devenir ; il ne sait pas forcément ce qu'elle vaut\naujourd'hui dans IAM. Lui faire calculer l'écart, c'est lui faire porter\nl'arithmétique sur laquelle la décision repose — et deux appels\nconcurrents calculeraient leur écart sur la même valeur de départ. Ici,\nc'est IAM qui soustrait, dans la transaction.\n\n**Les clés absentes sont inchangées**, pas remises à zéro : un appelant\nqui ne parle que de la mémoire ne doit pas effacer le compte de vCPU.\n\n**Seules les ressources de `stock` se redimensionnent.** Une ressource de\n`periode` (`gpu_hours_month`, `storage_egress_gb_month`) se *consomme* :\nelle n'est pas détenue, donc il n'y a rien à redimensionner, et réduire\nne rendrait pas les heures déjà passées. `422`.\n\nLa vérification ne porte que sur la **croissance** : la consommation est\ncalculée en sommant les quantités des ressources vivantes, donc écrire la\nnouvelle taille suffit à la faire suivre. Une réduction libère d'elle-même\net n'a aucune raison d'être refusée.\n\nLe droit : le propriétaire, un `admin`, ou une délégation. Sinon la\ndécision passe par `vm:update` sur **cette** ressource, donc les prêts\n(`POST /resources/{id}/grants`) s'appliquent sans règle de plus.\n",
+        "operationId": "redimensionnerRessource",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/CleIdempotence"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "quantites": {
+                    "additionalProperties": {
+                      "minimum": 0,
+                      "type": "integer"
+                    },
+                    "example": {
+                      "ram_gb": 8,
+                      "vcpu": 4
+                    },
+                    "type": "object"
+                  }
+                },
+                "required": [
+                  "quantites"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Les quotas dont le solde vient de changer."
+          },
+          "401": {
+            "$ref": "#/components/responses/NonAuthentifie"
+          },
+          "403": {
+            "$ref": "#/components/responses/Interdit"
+          },
+          "404": {
+            "description": "Aucune ressource VIVANTE sous cet identifiant. Une ressource libérée ne compte plus : elle n'est pas redimensionnable."
+          },
+          "409": {
+            "description": "Quota dépassé par la croissance demandée. Le détail nomme la ressource qui bloque et le niveau."
+          },
+          "422": {
+            "description": "Corps invalide, ressource inconnue au catalogue, ou ressource de période."
+          }
+        },
+        "summary": "Cette ressource n'a plus la même taille",
+        "tags": [
+          "D · Quotas"
+        ]
+      }
+    },
     "/sts/assume-role": {
       "post": {
         "description": "**Deux portes :** l'appelant a le droit d'assumer, ET la confiance du rôle le nomme. Un refus ne dit pas laquelle a fermé, ni si le rôle existe ; la vraie raison est au journal.\n\n**Chaînage :** une session peut en endosser une autre si sa politique l'y autorise. La source reste la personne d'origine, la durée est bornée par une heure ET par ce qu'il reste à la session parente, cinq niveaux au plus. Révoquer un maillon coupe ce qui en descend.\n\n**Sans `Idempotency-Key`**, pour la même raison que `POST /access-keys`.\n",

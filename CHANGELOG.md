@@ -34,10 +34,13 @@ version, migration comprise, est dans `docs/releases/`.
   confirmation se font dans IAM côté serveur — mais la *décision* reste
   consultative tant que le backend ne la demande pas lui aussi. Le contrôle qui
   fait autorité est `gandal_garde`, dans le dépôt GANDAL (`iam/garde-serveur/`).
-- `autoriser_modification` **décide mais ne compte pas** : le coût du catalogue
-  IAM ajoute et ne retranche pas, donc compter un redimensionnement par ce
-  chemin compterait la taille entière au lieu de l'écart. Tant qu'IAM n'a pas de
-  point d'API « redimensionner une ressource », c'est volontaire et c'est dit.
+- `autoriser_modification` **décide puis compte** : `resize_resource`
+  (`POST /resources/{id}/resize`, nouveau au contrat) redimensionne la ressource
+  après la décision. Elle ne comptait pas, parce que le coût du catalogue IAM
+  *ajoute* et ne retranche pas — compter un redimensionnement par le chemin des
+  réservations aurait compté la taille **entière** au lieu de l'écart. Les
+  quantités sont **absolues** et c'est IAM qui soustrait ; les clés absentes
+  restent inchangées ; seul le `stock` se redimensionne.
 
 ## [0.5.0] - 2026-11-04
 
