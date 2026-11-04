@@ -1731,6 +1731,18 @@
                         "proprietaire"
                       ],
                       "cellule": "S1",
+                      "nom": "vm:update",
+                      "roles": [
+                        "user",
+                        "admin"
+                      ],
+                      "second_facteur": false
+                    },
+                    {
+                      "capacites": [
+                        "proprietaire"
+                      ],
+                      "cellule": "S1",
                       "nom": "vm:delete",
                       "roles": [
                         "user",
@@ -1772,6 +1784,80 @@
                       ],
                       "cellule": "S1",
                       "nom": "vm:read",
+                      "roles": [
+                        "user",
+                        "admin"
+                      ],
+                      "second_facteur": false
+                    },
+                    {
+                      "capacites": [],
+                      "cellule": "S1",
+                      "nom": "storage:provider:attach",
+                      "roles": [
+                        "admin"
+                      ],
+                      "second_facteur": true
+                    },
+                    {
+                      "capacites": [
+                        "proprietaire"
+                      ],
+                      "cellule": "S1",
+                      "nom": "storage:bucket:create",
+                      "roles": [
+                        "user",
+                        "admin"
+                      ],
+                      "second_facteur": false
+                    },
+                    {
+                      "capacites": [
+                        "proprietaire"
+                      ],
+                      "cellule": "S1",
+                      "nom": "storage:bucket:delete",
+                      "roles": [
+                        "user",
+                        "admin"
+                      ],
+                      "second_facteur": false
+                    },
+                    {
+                      "capacites": [
+                        "proprietaire",
+                        "contributeur",
+                        "lecteur"
+                      ],
+                      "cellule": "S1",
+                      "nom": "storage:bucket:read",
+                      "roles": [
+                        "user",
+                        "admin"
+                      ],
+                      "second_facteur": false
+                    },
+                    {
+                      "capacites": [
+                        "proprietaire",
+                        "contributeur"
+                      ],
+                      "cellule": "S1",
+                      "nom": "storage:object:write",
+                      "roles": [
+                        "user",
+                        "admin"
+                      ],
+                      "second_facteur": false
+                    },
+                    {
+                      "capacites": [
+                        "proprietaire",
+                        "contributeur",
+                        "lecteur"
+                      ],
+                      "cellule": "S1",
+                      "nom": "storage:object:read",
                       "roles": [
                         "user",
                         "admin"
@@ -3813,7 +3899,7 @@
     },
     "/quotas": {
       "get": {
-        "description": "**`restant = limite − consomme − reserve`** — §8.1, et c'est la seule\nformule qui compte.\n\nDeux natures de quota coexistent :\n\n| nature | exemples | comportement |\n|---|---|---|\n| **stock** | `vcpu`, `ram_gb`, `disk_gb`, `vm_count`, `gpu_count`, `gpu_mem_mb` | occupé tant que la ressource existe |\n| **période** | `dev_env_hours_month`, `gpu_hours_month` | se consomme au fil du temps, remis à zéro à l'échéance |\n\n**Un quota de stock seul ne sait pas dire « à la demande ».** Il\nretient la ressource tant que la VM existe, même éteinte. Le quota de\npériode est la seule façon d'exprimer un partage dans le temps : tout\nle monde peut créer, le temps d'exécution est rationné.\n\n## Deux vocabulaires pour les mêmes quotas\n\n**À lire avant d'écrire une ligne de code qui touche aux quotas.** Le\ncontrat et le realm ne les nomment pas pareil, et ce n'était écrit\nnulle part avant la 1.2.0 :\n\n| ressource du contrat | attribut du realm | nature |\n|---|---|---|\n| `vm_count` | `quota-vm` | stock |\n| `vcpu` | `quota-vcpu` | stock |\n| `ram_gb` | `quota-memoire-gio` | stock |\n| `disk_gb` | `quota-disque-gio` | stock |\n| `dev_env_hours_month` | `quota-heures-mois` | période |\n| `gpu_count` | `quota-gpu` — **à 0 dans le realm** | stock |\n| `gpu_mem_mb` | `quota-gpu-memoire-mio` — **à 0** | stock |\n| `gpu_hours_month` | `quota-gpu-heures-mois` — **à 0** | période |\n\n## Les trois portées d'un quota\n\nUne demande doit passer **les trois**, et le refus nomme celle qui a bloqué :\n\n| portée | d'où viennent les limites | absence de limite |\n|---|---|---|\n| `compte` | attributs effectifs (rôle → groupe → dérogation) | **0** : rien n'est accordé |\n| `projet` | le plan du projet, plafonné par son propriétaire | **0** |\n| `ressource` | les **étiquettes** de la ressource (`PATCH /tags/ressource/{id}`), sous les noms du realm | **−1** : pas de limite *à ce niveau* |\n\nUn travail GPU rattaché à une VM (`ressource_portee`) compte contre la VM\n**et** contre le compte **et** contre le projet. Détruire la VM libère ses\ntravaux : `POST /resources/{vm}/release` emporte ce qui dépend d'elle.\n\n**`/quotas` et `/quota-capacity` emploient les noms du contrat.**\n`/subjects/me` rend les attributs sous **les noms du realm**, parce que\nc'est sous ces noms qu'on les lit dans Keycloak et qu'un administrateur\nqui compare les deux écrans doit retrouver les mêmes étiquettes.\n\nUne ressource absente du realm vaut **zéro**, donc toute demande de\nGPU est **refusée**. C'est voulu : on n'accorde jamais une ressource\nqu'on ne sait pas compter.\n\n**La sursouscription est assumée, pas interdite.** IAM applique une\nlimite par compte ; il ne connaît pas le nombre de VM que la\nplateforme portera, et personne ne le connaît — c'est à la demande.\nIAM **expose donc les totaux** (`/quota-aggregates`) pour que la\ncellule Optimisation observe le rapport entre engagé et disponible,\net **propose** (`/quota-proposals`). Elle ne modifie jamais un\nquota elle-même.\n\nUn avertissement `QUOTA_WARNING_80` est publié quand consommé +\nréservé atteint 80 % d'une limite.\n",
+        "description": "**`restant = limite − consomme − reserve`** — §8.1, et c'est la seule\nformule qui compte.\n\nDeux natures de quota coexistent :\n\n| nature | exemples | comportement |\n|---|---|---|\n| **stock** | `vcpu`, `ram_gb`, `disk_gb`, `vm_count`, `gpu_count`, `gpu_mem_mb`, `storage_buckets`, `storage_gb`, `storage_objects` | occupé tant que la ressource existe |\n| **période** | `dev_env_hours_month`, `gpu_hours_month`, `storage_egress_gb_month` | se consomme au fil du temps, remis à zéro à l'échéance |\n\n**Un quota de stock seul ne sait pas dire « à la demande ».** Il\nretient la ressource tant que la VM existe, même éteinte. Le quota de\npériode est la seule façon d'exprimer un partage dans le temps : tout\nle monde peut créer, le temps d'exécution est rationné.\n\n## Deux vocabulaires pour les mêmes quotas\n\n**À lire avant d'écrire une ligne de code qui touche aux quotas.** Le\ncontrat et le realm ne les nomment pas pareil, et ce n'était écrit\nnulle part avant la 1.2.0 :\n\n| ressource du contrat | attribut du realm | nature |\n|---|---|---|\n| `vm_count` | `quota-vm` | stock |\n| `vcpu` | `quota-vcpu` | stock |\n| `ram_gb` | `quota-memoire-gio` | stock |\n| `disk_gb` | `quota-disque-gio` | stock |\n| `dev_env_hours_month` | `quota-heures-mois` | période |\n| `gpu_count` | `quota-gpu` — **à 0 dans le realm** | stock |\n| `gpu_mem_mb` | `quota-gpu-memoire-mio` — **à 0** | stock |\n| `gpu_hours_month` | `quota-gpu-heures-mois` — **à 0** | période |\n| `storage_buckets` | `quota-seaux` — **à 0** | stock |\n| `storage_gb` | `quota-stockage-gio` — **à 0** | stock |\n| `storage_objects` | `quota-stockage-objets` — **à 0** | stock |\n| `storage_egress_gb_month` | `quota-stockage-sortie-gio-mois` — **à 0** | période |\n\n**Un projet sans quota de stockage est refusé**, et c'est le défaut : la\nlimite par défaut d'un projet est zéro. Accorder le quota active le\nstockage, le ramener à zéro le retire. Il n'y a pas d'interrupteur\nséparé — deux interrupteurs pour une porte finissent par diverger.\n**Quel fournisseur** (`drive`, `s3`, `supabase`) est un ATTRIBUT du\nprojet (`stockage-fournisseur`), pas un quota : ce n'est pas une\nquantité. Les politiques le lisent via `gandal:projet:attr:*`.\n\n## Les trois portées d'un quota\n\nUne demande doit passer **les trois**, et le refus nomme celle qui a bloqué :\n\n| portée | d'où viennent les limites | absence de limite |\n|---|---|---|\n| `compte` | attributs effectifs (rôle → groupe → dérogation) | **0** : rien n'est accordé |\n| `projet` | le plan du projet, plafonné par son propriétaire | **0** |\n| `ressource` | les **étiquettes** de la ressource (`PATCH /tags/ressource/{id}`), sous les noms du realm | **−1** : pas de limite *à ce niveau* |\n\nUn travail GPU rattaché à une VM (`ressource_portee`) compte contre la VM\n**et** contre le compte **et** contre le projet. Détruire la VM libère ses\ntravaux : `POST /resources/{vm}/release` emporte ce qui dépend d'elle.\n\n**`/quotas` et `/quota-capacity` emploient les noms du contrat.**\n`/subjects/me` rend les attributs sous **les noms du realm**, parce que\nc'est sous ces noms qu'on les lit dans Keycloak et qu'un administrateur\nqui compare les deux écrans doit retrouver les mêmes étiquettes.\n\nUne ressource absente du realm vaut **zéro**, donc toute demande de\nGPU est **refusée**. C'est voulu : on n'accorde jamais une ressource\nqu'on ne sait pas compter.\n\n**La sursouscription est assumée, pas interdite.** IAM applique une\nlimite par compte ; il ne connaît pas le nombre de VM que la\nplateforme portera, et personne ne le connaît — c'est à la demande.\nIAM **expose donc les totaux** (`/quota-aggregates`) pour que la\ncellule Optimisation observe le rapport entre engagé et disponible,\net **propose** (`/quota-proposals`). Elle ne modifie jamais un\nquota elle-même.\n\nUn avertissement `QUOTA_WARNING_80` est publié quand consommé +\nréservé atteint 80 % d'une limite.\n",
         "operationId": "lireMesQuotas",
         "parameters": [
           {

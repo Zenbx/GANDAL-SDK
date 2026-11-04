@@ -6,6 +6,39 @@ version, migration comprise, est dans `docs/releases/`.
 
 ## [Non publié]
 
+### Ajouté
+
+- `GardeIam` (`gandal_sdk.garde`) : la séquence du contrat IAM en un
+  gestionnaire de contexte — décider → réserver → créer → confirmer, et
+  **libérer** si le corps lève. La cellule `iam` savait poser la question depuis
+  0.5.0 ; personne ne la posait. `orchestration/vms.py` créait, modifiait,
+  allumait et détruisait des VM sans jamais demander de décision ni retenir de
+  quota.
+- `DecisionRefusee`, qui conserve le **motif** d'IAM et sa phrase lisible
+  (« il vous reste 0 vCPU sur 4 ») au lieu d'une erreur générique.
+- Stockage objet (Drive, S3, Supabase) : `autoriser_creation_seau`,
+  `autoriser_suppression_seau`, `autoriser_ecriture`, `autoriser_lecture`.
+  **Un projet sans quota de stockage est refusé** — c'est le défaut côté IAM, et
+  il n'y a pas d'interrupteur séparé : la porte est le quota. Quel fournisseur
+  (`drive`|`s3`|`supabase`) est un **attribut** du projet, pas un quota.
+- 15 tests, dont les deux fautes qui ne se voient pas : créer sans confirmer, et
+  échouer sans libérer.
+- Instantané `openapi/gandal-iam.json` resynchronisé : `vm:update` et les six
+  actions `storage:*`, plus les quatre ressources de quota du stockage.
+
+### À savoir
+
+- **Cette garde n'est pas le contrôle d'accès.** Un garde-fou dans un client est
+  contournable : il suffit d'appeler le backend directement. Ce qu'elle apporte
+  est réel — la **comptabilité** des quotas devient vraie, puisque réservation et
+  confirmation se font dans IAM côté serveur — mais la *décision* reste
+  consultative tant que le backend ne la demande pas lui aussi. Le contrôle qui
+  fait autorité est `gandal_garde`, dans le dépôt GANDAL (`iam/garde-serveur/`).
+- `autoriser_modification` **décide mais ne compte pas** : le coût du catalogue
+  IAM ajoute et ne retranche pas, donc compter un redimensionnement par ce
+  chemin compterait la taille entière au lieu de l'écart. Tant qu'IAM n'a pas de
+  point d'API « redimensionner une ressource », c'est volontaire et c'est dit.
+
 ## [0.5.0] - 2026-11-04
 
 Notes complètes : [docs/releases/v0.5.0.md](docs/releases/v0.5.0.md).
