@@ -6,6 +6,38 @@ version, migration comprise, est dans `docs/releases/`.
 
 ## [Non publié]
 
+### Corrigé (incompatible)
+
+- **`RequestOut.id` est une CHAINE**, plus un entier, et les cinq signatures
+  `request_id` suivent. Le backend rend un UUID
+  (`7bc3e3bb-fa40-417e-b4bc-3386008a8edf`) : déclaré `int`, ce champ faisait
+  lever Pydantic à **chaque dépôt de demande** — le SDK était inutilisable sur
+  `vms.request_create`, `vms.request_update` et tout `requests.*`. Aucun test de
+  l'un ou l'autre côté ne pouvait le voir : ceux du SDK valident ses propres
+  modèles, ceux du backend les siens.
+
+### À trancher — divergences mesurées contre le backend qui tourne
+
+Relevées en faisant parler le vrai SDK au vrai backend
+(`GANDAL-BACKEND-IaaS/iaas-api`, `f9aff99`). Elles demandent une décision à deux,
+pas un choix unilatéral :
+
+1. **`ProfileOut.id`** : le backend rend une chaîne (`String(36)`), l'instantané
+   publié dit `integer`. Laissé en `int` ici, avec une note dans le modèle.
+2. **L'instantané `openapi/iaas-api.json` est périmé** : 6 routes contre **46**
+   servies. À resynchroniser, et cela révèle les points 3 et 4 :
+   ```bash
+   python scripts/sync_openapi.py --service iaas-api --app-dir <iaas-api> \
+       --python <son venv>
+   ```
+3. **Trois modèles renommés côté backend** : `ProfileCreate`, `ProfileUpdate` et
+   `PaginatedProfilesOut` ont disparu de son OpenAPI. Le test de contrat les
+   cherche par nom.
+4. **Six routes publiées sans helper SDK** : `GET /ready`,
+   `POST /api/v1/admin/admins`, `POST /api/v1/auth/register`, et les trois
+   `POST .../deletion` (projets, VM, réseaux — que le SDK appelle pourtant, mais
+   que le vérificateur de couverture ne reconnaît pas).
+
 ### Ajouté
 
 - `GardeIam` (`gandal_sdk.garde`) : la séquence du contrat IAM en un

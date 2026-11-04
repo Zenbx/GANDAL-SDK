@@ -62,7 +62,7 @@ def test_packs_admin_create() -> None:
 def test_requests_accept() -> None:
     """accept renvoie RequestOut."""
     body = {
-        "id": 1,
+        "id": "req-1",
         "project_id": "prj-1",
         "author_id": "u1",
         "kind": "vm_create",

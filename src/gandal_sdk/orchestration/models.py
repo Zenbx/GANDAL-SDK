@@ -279,7 +279,12 @@ class RequestDecisionIn(BaseModel):
 class RequestOut(BaseModel):
     """Demande telle que renvoyee par l'API."""
 
-    id: int
+    # UN IDENTIFIANT TEXTE, et non un entier. Le backend rend un UUID
+    # (« 7bc3e3bb-fa40-417e-... ») : un entier sequentiel revelerait le volume de
+    # demandes et se devinerait. Declare `int`, ce champ faisait lever Pydantic a
+    # CHAQUE depot de demande — le SDK etait inutilisable sur ce chemin, et
+    # aucun test de l un ou l autre cote ne pouvait le voir.
+    id: str
     project_id: str
     author_id: str
     kind: RequestKind
@@ -329,6 +334,11 @@ class RightOut(BaseModel):
 class ProfileOut(BaseModel):
     """Profil de droits."""
 
+    # ATTENTION, DIVERGENCE CONNUE : le backend qui tourne rend une CHAINE ici
+    # (`String(36)`), et l instantane publie dit encore `integer`. La corriger
+    # demande de renommer trois modeles que le backend a renommes de son cote
+    # (`ProfileCreate`, `ProfileUpdate` et `PaginatedProfilesOut` ont disparu de
+    # son OpenAPI). Ce n est pas une decision a prendre seul — voir le CHANGELOG.
     id: int
     name: str
     description: str
