@@ -815,6 +815,33 @@ class IamCell:
         )
         return m.Quotas.model_validate(data)
 
+    def resize_resource(
+        self,
+        resource_id: str,
+        quantites: dict[str, int],
+        *,
+        idempotency_key: str | None = None,
+        correlation_id: str | None = None,
+    ) -> m.Quotas:
+        """Redimensionne une ressource comptee (POST /resources/{id}/resize).
+
+        Les quantites sont ABSOLUES, pas un ecart : c'est IAM qui soustrait, dans
+        sa transaction. Les cles absentes restent inchangees. Seules les
+        ressources de `stock` se redimensionnent — une ressource de periode se
+        consomme et rend 422.
+        """
+        data = self._req(
+            "POST",
+            f"/resources/{resource_id}/resize",
+            json={"quantites": quantites},
+            headers=_hdr(
+                idempotency_key=idempotency_key,
+                correlation_id=correlation_id,
+                require_idem=True,
+            ),
+        )
+        return m.Quotas.model_validate(data)
+
     # --- F · Machines, cles, STS, politiques -----------------------------------
 
     def create_machine_identity(

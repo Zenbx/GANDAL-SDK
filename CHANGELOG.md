@@ -6,6 +6,67 @@ version, migration comprise, est dans `docs/releases/`.
 
 ## [Non publié]
 
+### Corrigé (incompatible)
+
+- **`RequestOut.id` est une CHAINE**, plus un entier, et les cinq signatures
+  `request_id` suivent. Le backend rend un UUID
+  (`7bc3e3bb-fa40-417e-b4bc-3386008a8edf`) : déclaré `int`, ce champ faisait
+  lever Pydantic à **chaque dépôt de demande** — le SDK était inutilisable sur
+  `vms.request_create`, `vms.request_update` et tout `requests.*`. Aucun test de
+  l'un ou l'autre côté ne pouvait le voir : ceux du SDK valident ses propres
+  modèles, ceux du backend les siens.
+
+### Corrigé — les divergences avec le backend, tranchées
+
+Mesurées en faisant parler le vrai SDK au vrai backend
+(`GANDAL-BACKEND-IaaS/iaas-api`, `f9aff99`), et corrigées du côté qui avait tort.
+
+- **`ProfileOut.id` est une chaîne.** Le backend stocke les profils en
+  `String(36)`, comme tout le reste du système : projets (`prj_…`), VM (`vm_…`),
+  demandes et partages sont tous des UUID. Un entier séquentiel ici aurait été le
+  seul identifiant devinable de la plateforme, et il révélerait combien de profils
+  existent. Les paramètres `profile_id` suivent.
+- **Les trois noms de schéma du test de contrat** suivent le backend :
+  `ProfileCreate` → `ProfileCreateIn`, `ProfileUpdate` → `ProfileUpdateIn`,
+  `PaginatedProfilesOut` → `Page_ProfileOut_`. À noter : les modèles du SDK
+  s'appelaient **déjà** `ProfileCreateIn`/`ProfileUpdateIn` et utilisaient déjà
+  `Page[ProfileOut]` — c'étaient les chaînes du test qui étaient restées sur
+  l'ancienne version. Le SDK était cohérent ; seul son contrôle ne l'était plus.
+- **`openapi/iaas-api.json` resynchronisé** : 6 routes → **46**.
+- **`RegisterIn` et `ReadinessOut`** ajoutés, et trois modèles de plus entrent
+  sous contrôle de contrat (`RegisterIn`, `ReadinessOut`, `RequestOut`).
+
+### Ajouté — les trois routes qui n'avaient pas de helper
+
+- `auth.register(body)` — `POST /api/v1/auth/register`. Le jeton est posé sur le
+  transport, comme pour `login` : après une inscription, l'appelant est connecté.
+  Ne pas le poser obligerait à enchaîner `register` puis `login`, et l'un des
+  deux finirait par être oublié.
+- `health.ready()` — `GET /ready`, et noter qu'elle n'est **pas** sous `/api/v1`.
+  `check()` dit que le processus répond ; `ready()` qu'il peut **servir**. C'est
+  `ready` que vise une sonde d'orchestrateur avant d'envoyer du trafic. Elle rend
+  aussi le réglage du service de décision du backend (`off` | `fake` | `gandal`),
+  ce qu'une supervision doit surveiller.
+- `profiles.create_admin(body)` — `POST /api/v1/admin/admins`. Rend l'**identité**
+  créée, pas un jeton : contrairement à `register`, celui qui crée
+  l'administrateur n'est pas celui qui l'utilisera.
+
+### Corrigé — le détecteur de couverture criait à tort
+
+`tests/contract.py` déclarait les trois routes `.../deletion` « non couvertes »
+alors que le SDK les appelle — via `delete_two_step`, dont la méthode n'est pas
+littérale à côté du chemin. Le détecteur les lit maintenant. **Un contrôle qui
+crie à tort finit par être ignoré en bloc, y compris le jour où il a raison.**
+
+### À savoir — mesuré, et laissé en place
+
+Le SDK garde cinq helpers `storages` (`projects/{id}/storages…`) pour des routes
+que le backend a **retirées** (`978aeab Remove DNS and storage scope`). Ils
+rendront 404. Ils ne sont pas supprimés ici : « retiré du périmètre » peut
+vouloir dire « reporté », et détruire ce travail n'est pas une décision à prendre
+seul. Le test de couverture ne voit pas ce sens-là — il vérifie qu'une route
+publiée a un helper, pas qu'un helper a une route.
+
 ## [0.5.0] - 2026-11-04
 
 Notes complètes : [docs/releases/v0.5.0.md](docs/releases/v0.5.0.md).

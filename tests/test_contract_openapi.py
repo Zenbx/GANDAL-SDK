@@ -24,9 +24,12 @@ MODEL_PAIRS: list[tuple[type[BaseModel], str, str]] = [
     (models.PasswordChangeIn, "PasswordChangeIn", "in"),
     (models.RightOut, "RightOut", "out"),
     (models.ProfileOut, "ProfileOut", "out"),
-    (models.ProfileCreateIn, "ProfileCreate", "in"),
-    (models.ProfileUpdateIn, "ProfileUpdate", "in"),
-    (models.Page[models.ProfileOut], "PaginatedProfilesOut", "out"),
+    (models.ProfileCreateIn, "ProfileCreateIn", "in"),
+    (models.ProfileUpdateIn, "ProfileUpdateIn", "in"),
+    (models.Page[models.ProfileOut], "Page_ProfileOut_", "out"),
+    (models.RegisterIn, "RegisterIn", "in"),
+    (models.ReadinessOut, "ReadinessOut", "out"),
+    (models.RequestOut, "RequestOut", "out"),
 ]
 
 
