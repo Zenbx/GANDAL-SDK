@@ -115,7 +115,7 @@ def test_profiles_list_rights_and_create() -> None:
     respx.post("http://example.test/api/v1/admin/profiles").respond(
         201,
         json={
-            "id": 1,
+            "id": "prof-1",
             "name": "Lecteur",
             "description": "",
             "rights": ["vm.view"],
@@ -127,7 +127,7 @@ def test_profiles_list_rights_and_create() -> None:
         profile = client.orchestration.profiles.create(
             ProfileCreateIn(name="Lecteur", rights=["vm.view"])
         )
-        assert profile.id == 1
+        assert profile.id == "prof-1"
 
 
 @respx.mock

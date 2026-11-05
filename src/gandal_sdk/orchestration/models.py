@@ -83,7 +83,7 @@ class ProjectMemberOut(BaseModel):
 
     user_id: str
     role: MembershipRole
-    profile_id: int | None
+    profile_id: str | None
     rights: list[str]
     joined_at: datetime
 
@@ -91,7 +91,7 @@ class ProjectMemberOut(BaseModel):
 class MemberRightsUpdateIn(BaseModel):
     """Modification des droits d'un invite."""
 
-    profile_id: int | None = None
+    profile_id: str | None = None
     additional_rights: list[str] | None = None
 
 
@@ -100,7 +100,7 @@ class InvitationCreateIn(BaseModel):
 
     invitee_id: str | None = None
     email: str | None = None
-    profile_id: int | None = None
+    profile_id: str | None = None
     additional_rights: list[str] = Field(default_factory=list)
 
     @model_validator(mode="after")
@@ -120,7 +120,7 @@ class InvitationOut(BaseModel):
     invitee_id: str
     invitee_email: str | None
     status: InvitationStatus
-    profile_id: int | None
+    profile_id: str | None
     additional_rights: list[str]
     created_at: datetime
     updated_at: datetime
@@ -334,12 +334,12 @@ class RightOut(BaseModel):
 class ProfileOut(BaseModel):
     """Profil de droits."""
 
-    # ATTENTION, DIVERGENCE CONNUE : le backend qui tourne rend une CHAINE ici
-    # (`String(36)`), et l instantane publie dit encore `integer`. La corriger
-    # demande de renommer trois modeles que le backend a renommes de son cote
-    # (`ProfileCreate`, `ProfileUpdate` et `PaginatedProfilesOut` ont disparu de
-    # son OpenAPI). Ce n est pas une decision a prendre seul — voir le CHANGELOG.
-    id: int
+    # UNE CHAINE, et c'est le choix juste. Le backend stocke les profils en
+    # `String(36)` comme tout le reste du systeme : projets (`prj_...`), VM
+    # (`vm_...`), demandes et partages sont tous des UUID. Un entier sequentiel
+    # ici serait le seul identifiant devinable de la plateforme, et il revelerait
+    # combien de profils existent.
+    id: str
     name: str
     description: str
     rights: list[str]
@@ -374,3 +374,24 @@ class PasswordChangeIn(BaseModel):
 
     old_password: str
     new_password: str = Field(min_length=6)
+
+
+class RegisterIn(BaseModel):
+    """Creation d'un compte : inscription, ou creation d'un administrateur."""
+
+    email: str
+    password: str
+    first_name: str
+    last_name: str
+
+
+class ReadinessOut(BaseModel):
+    """Reponse de GET /ready.
+
+    A ne pas confondre avec `/api/v1/health` : `health` dit que le processus
+    repond, `ready` qu'il peut servir — base de donnees joignable, dependances
+    pretes. C'est `ready` que vise une sonde d'orchestrateur avant d'envoyer du
+    trafic.
+    """
+
+    status: str

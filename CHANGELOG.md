@@ -16,63 +16,56 @@ version, migration comprise, est dans `docs/releases/`.
   l'un ou l'autre côté ne pouvait le voir : ceux du SDK valident ses propres
   modèles, ceux du backend les siens.
 
-### À trancher — divergences mesurées contre le backend qui tourne
+### Corrigé — les divergences avec le backend, tranchées
 
-Relevées en faisant parler le vrai SDK au vrai backend
-(`GANDAL-BACKEND-IaaS/iaas-api`, `f9aff99`). Elles demandent une décision à deux,
-pas un choix unilatéral :
+Mesurées en faisant parler le vrai SDK au vrai backend
+(`GANDAL-BACKEND-IaaS/iaas-api`, `f9aff99`), et corrigées du côté qui avait tort.
 
-1. **`ProfileOut.id`** : le backend rend une chaîne (`String(36)`), l'instantané
-   publié dit `integer`. Laissé en `int` ici, avec une note dans le modèle.
-2. **L'instantané `openapi/iaas-api.json` est périmé** : 6 routes contre **46**
-   servies. À resynchroniser, et cela révèle les points 3 et 4 :
-   ```bash
-   python scripts/sync_openapi.py --service iaas-api --app-dir <iaas-api> \
-       --python <son venv>
-   ```
-3. **Trois modèles renommés côté backend** : `ProfileCreate`, `ProfileUpdate` et
-   `PaginatedProfilesOut` ont disparu de son OpenAPI. Le test de contrat les
-   cherche par nom.
-4. **Six routes publiées sans helper SDK** : `GET /ready`,
-   `POST /api/v1/admin/admins`, `POST /api/v1/auth/register`, et les trois
-   `POST .../deletion` (projets, VM, réseaux — que le SDK appelle pourtant, mais
-   que le vérificateur de couverture ne reconnaît pas).
+- **`ProfileOut.id` est une chaîne.** Le backend stocke les profils en
+  `String(36)`, comme tout le reste du système : projets (`prj_…`), VM (`vm_…`),
+  demandes et partages sont tous des UUID. Un entier séquentiel ici aurait été le
+  seul identifiant devinable de la plateforme, et il révélerait combien de profils
+  existent. Les paramètres `profile_id` suivent.
+- **Les trois noms de schéma du test de contrat** suivent le backend :
+  `ProfileCreate` → `ProfileCreateIn`, `ProfileUpdate` → `ProfileUpdateIn`,
+  `PaginatedProfilesOut` → `Page_ProfileOut_`. À noter : les modèles du SDK
+  s'appelaient **déjà** `ProfileCreateIn`/`ProfileUpdateIn` et utilisaient déjà
+  `Page[ProfileOut]` — c'étaient les chaînes du test qui étaient restées sur
+  l'ancienne version. Le SDK était cohérent ; seul son contrôle ne l'était plus.
+- **`openapi/iaas-api.json` resynchronisé** : 6 routes → **46**.
+- **`RegisterIn` et `ReadinessOut`** ajoutés, et trois modèles de plus entrent
+  sous contrôle de contrat (`RegisterIn`, `ReadinessOut`, `RequestOut`).
 
-### Ajouté
+### Ajouté — les trois routes qui n'avaient pas de helper
 
-- `GardeIam` (`gandal_sdk.garde`) : la séquence du contrat IAM en un
-  gestionnaire de contexte — décider → réserver → créer → confirmer, et
-  **libérer** si le corps lève. La cellule `iam` savait poser la question depuis
-  0.5.0 ; personne ne la posait. `orchestration/vms.py` créait, modifiait,
-  allumait et détruisait des VM sans jamais demander de décision ni retenir de
-  quota.
-- `DecisionRefusee`, qui conserve le **motif** d'IAM et sa phrase lisible
-  (« il vous reste 0 vCPU sur 4 ») au lieu d'une erreur générique.
-- Stockage objet (Drive, S3, Supabase) : `autoriser_creation_seau`,
-  `autoriser_suppression_seau`, `autoriser_ecriture`, `autoriser_lecture`.
-  **Un projet sans quota de stockage est refusé** — c'est le défaut côté IAM, et
-  il n'y a pas d'interrupteur séparé : la porte est le quota. Quel fournisseur
-  (`drive`|`s3`|`supabase`) est un **attribut** du projet, pas un quota.
-- 15 tests, dont les deux fautes qui ne se voient pas : créer sans confirmer, et
-  échouer sans libérer.
-- Instantané `openapi/gandal-iam.json` resynchronisé : `vm:update` et les six
-  actions `storage:*`, plus les quatre ressources de quota du stockage.
+- `auth.register(body)` — `POST /api/v1/auth/register`. Le jeton est posé sur le
+  transport, comme pour `login` : après une inscription, l'appelant est connecté.
+  Ne pas le poser obligerait à enchaîner `register` puis `login`, et l'un des
+  deux finirait par être oublié.
+- `health.ready()` — `GET /ready`, et noter qu'elle n'est **pas** sous `/api/v1`.
+  `check()` dit que le processus répond ; `ready()` qu'il peut **servir**. C'est
+  `ready` que vise une sonde d'orchestrateur avant d'envoyer du trafic. Elle rend
+  aussi le réglage du service de décision du backend (`off` | `fake` | `gandal`),
+  ce qu'une supervision doit surveiller.
+- `profiles.create_admin(body)` — `POST /api/v1/admin/admins`. Rend l'**identité**
+  créée, pas un jeton : contrairement à `register`, celui qui crée
+  l'administrateur n'est pas celui qui l'utilisera.
 
-### À savoir
+### Corrigé — le détecteur de couverture criait à tort
 
-- **Cette garde n'est pas le contrôle d'accès.** Un garde-fou dans un client est
-  contournable : il suffit d'appeler le backend directement. Ce qu'elle apporte
-  est réel — la **comptabilité** des quotas devient vraie, puisque réservation et
-  confirmation se font dans IAM côté serveur — mais la *décision* reste
-  consultative tant que le backend ne la demande pas lui aussi. Le contrôle qui
-  fait autorité est `gandal_garde`, dans le dépôt GANDAL (`iam/garde-serveur/`).
-- `autoriser_modification` **décide puis compte** : `resize_resource`
-  (`POST /resources/{id}/resize`, nouveau au contrat) redimensionne la ressource
-  après la décision. Elle ne comptait pas, parce que le coût du catalogue IAM
-  *ajoute* et ne retranche pas — compter un redimensionnement par le chemin des
-  réservations aurait compté la taille **entière** au lieu de l'écart. Les
-  quantités sont **absolues** et c'est IAM qui soustrait ; les clés absentes
-  restent inchangées ; seul le `stock` se redimensionne.
+`tests/contract.py` déclarait les trois routes `.../deletion` « non couvertes »
+alors que le SDK les appelle — via `delete_two_step`, dont la méthode n'est pas
+littérale à côté du chemin. Le détecteur les lit maintenant. **Un contrôle qui
+crie à tort finit par être ignoré en bloc, y compris le jour où il a raison.**
+
+### À savoir — mesuré, et laissé en place
+
+Le SDK garde cinq helpers `storages` (`projects/{id}/storages…`) pour des routes
+que le backend a **retirées** (`978aeab Remove DNS and storage scope`). Ils
+rendront 404. Ils ne sont pas supprimés ici : « retiré du périmètre » peut
+vouloir dire « reporté », et détruire ce travail n'est pas une décision à prendre
+seul. Le test de couverture ne voit pas ce sens-là — il vérifie qu'une route
+publiée a un helper, pas qu'un helper a une route.
 
 ## [0.5.0] - 2026-11-04
 
