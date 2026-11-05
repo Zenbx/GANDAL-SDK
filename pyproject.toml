@@ -27,6 +27,13 @@ dev = [
 [tool.setuptools.packages.find]
 where = ["src"]
 
+# LA COMMANDE « gandal-ssh ». Elle n est pas un confort : entrer dans une VM
+# est le geste le plus frequent, et obliger a ecrire une ligne de Python pour
+# demander un certificat ferait que personne ne le ferait — et que les cles
+# permanentes resteraient.
+[project.scripts]
+gandal-ssh = "gandal_sdk.acces_ssh:cli"
+
 [tool.setuptools.package-data]
 gandal_sdk = ["py.typed"]
 
