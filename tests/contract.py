@@ -31,6 +31,11 @@ _JSON_TO_PY: dict[str, tuple[type, ...]] = {
 _CALL = re.compile(
     r'(?:request|_req)\(\s*"(GET|POST|PUT|PATCH|DELETE)",\s*f?"([^"]+)"'
 )
+
+# `delete_two_step(self._http, f"/api/v1/.../deletion", ...)` : on releve le
+# chemin, et la methode est POST par construction de l aide.
+_DELETE_DEUX_TEMPS = re.compile(
+    r"""delete_two_step\(\s*[^,]+,\s*f?["']([^"']+)["']""", re.X)
 _PLACEHOLDER = re.compile(r"\{[^}]*\}")
 
 
@@ -144,6 +149,14 @@ class OpenApiContract:
         }
         called: set[tuple[str, str]] = set()
         for source in sources or list(SDK_SOURCES.rglob("*.py")):
-            for method, path in _CALL.findall(source.read_text()):
+            texte = source.read_text()
+            for method, path in _CALL.findall(texte):
                 called.add((method, _PLACEHOLDER.sub("{}", path)))
+            # `delete_two_step` fait un POST sur le chemin qu on lui passe, mais
+            # la methode n est pas litterale a cote du chemin : sans cette
+            # lecture, les routes `.../deletion` sont declarees NON COUVERTES
+            # alors que le SDK les appelle. Un detecteur qui crie a tort finit
+            # par etre ignore en bloc, y compris le jour ou il a raison.
+            for path in _DELETE_DEUX_TEMPS.findall(texte):
+                called.add(("POST", _PLACEHOLDER.sub("{}", path)))
         return [f"{m} {p}" for m, p in sorted(published - called)]

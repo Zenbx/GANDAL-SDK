@@ -4,11 +4,13 @@ from __future__ import annotations
 
 from gandal_sdk._http import HttpTransport
 from gandal_sdk.orchestration._util import parse_page
+from gandal_sdk.orchestration.auth import IdentityOut
 from gandal_sdk.orchestration.models import (
     Page,
     ProfileCreateIn,
     ProfileOut,
     ProfileUpdateIn,
+    RegisterIn,
     RightOut,
 )
 
@@ -48,7 +50,7 @@ class ProfilesApi:
         )
         return ProfileOut.model_validate(data)
 
-    def update(self, profile_id: int, body: ProfileUpdateIn) -> ProfileOut:
+    def update(self, profile_id: str, body: ProfileUpdateIn) -> ProfileOut:
         """Modifie un profil (administrateur)."""
         data = self._http.request(
             "PATCH",
@@ -57,6 +59,19 @@ class ProfilesApi:
         )
         return ProfileOut.model_validate(data)
 
-    def delete(self, profile_id: int) -> None:
+    def delete(self, profile_id: str) -> None:
         """Supprime un profil (administrateur)."""
         self._http.request("DELETE", f"/api/v1/admin/profiles/{profile_id}")
+
+
+    def create_admin(self, body: RegisterIn) -> IdentityOut:
+        """Cree un administrateur (POST /api/v1/admin/admins).
+
+        Rend l'IDENTITE creee, pas un jeton : contrairement a `auth.register`,
+        celui qui cree l'administrateur n'est pas celui qui l'utilisera. Rendre
+        un jeton ici reviendrait a connecter l'appelant sous l'identite qu'il
+        vient de creer pour quelqu'un d'autre.
+        """
+        data = self._http.request(
+            "POST", "/api/v1/admin/admins", json=body.model_dump())
+        return IdentityOut.model_validate(data)

@@ -17,7 +17,7 @@ def _request(status: str, note: str | None = None, target: str | None = None) ->
     return httpx.Response(
         200,
         json={
-            "id": 12,
+            "id": "req-12",
             "project_id": "prj-1",
             "author_id": "usr-1",
             "kind": "vm_create",

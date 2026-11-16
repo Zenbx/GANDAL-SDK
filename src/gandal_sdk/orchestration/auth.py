@@ -5,7 +5,7 @@ from __future__ import annotations
 from pydantic import BaseModel, Field
 
 from gandal_sdk._http import HttpTransport
-from gandal_sdk.orchestration.models import PasswordChangeIn, UserUpdateIn
+from gandal_sdk.orchestration.models import PasswordChangeIn, RegisterIn, UserUpdateIn
 
 
 class TokenOut(BaseModel):
@@ -39,6 +39,20 @@ class AuthApi:
     def __init__(self, transport: HttpTransport) -> None:
         """Attache le transport HTTP partage."""
         self._http = transport
+
+    def register(self, body: "RegisterIn") -> TokenOut:
+        """Cree un compte et rend son jeton (POST /api/v1/auth/register).
+
+        Le jeton est pose sur le transport, comme pour `login` : apres une
+        inscription, l'appelant est connecte. Ne pas le poser obligerait chaque
+        appelant a enchainer `register` puis `login`, et l'un des deux finirait
+        par etre oublie.
+        """
+        data = self._http.request(
+            "POST", "/api/v1/auth/register", json=body.model_dump())
+        token = TokenOut.model_validate(data)
+        self._http.set_token(token.access_token)
+        return token
 
     def login(self, email: str, password: str) -> TokenOut:
         """Echange email/mot de passe contre un jeton Bearer."""
