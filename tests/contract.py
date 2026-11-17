@@ -83,7 +83,9 @@ class OpenApiContract:
     """Instantane OpenAPI d'un service, et les controles de compatibilite du SDK."""
 
     def __init__(self, snapshot: str) -> None:
-        self.spec = json.loads((ROOT / "openapi" / snapshot).read_text())
+        self.spec = json.loads(
+            (ROOT / "openapi" / snapshot).read_text(encoding="utf-8")
+        )
         self.schemas = self.spec["components"]["schemas"]
 
     def _resolve(self, prop: dict) -> dict:

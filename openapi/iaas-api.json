@@ -971,6 +971,44 @@
         "title": "Page[ShareOut]",
         "type": "object"
       },
+      "Page_StorageOut_": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/StorageOut"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "page": {
+            "title": "Page",
+            "type": "integer"
+          },
+          "page_size": {
+            "title": "Page Size",
+            "type": "integer"
+          },
+          "total_items": {
+            "description": "Nombre total d'elements, toutes pages confondues.",
+            "title": "Total Items",
+            "type": "integer"
+          },
+          "total_pages": {
+            "description": "Nombre total de pages. Vaut 0 si la liste est vide.",
+            "title": "Total Pages",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "page",
+          "page_size",
+          "total_items",
+          "total_pages"
+        ],
+        "title": "Page[StorageOut]",
+        "type": "object"
+      },
       "Page_VMOut_": {
         "properties": {
           "items": {
@@ -1306,42 +1344,6 @@
         "title": "ReadinessOut",
         "type": "object"
       },
-      "RegisterIn": {
-        "properties": {
-          "email": {
-            "maxLength": 254,
-            "minLength": 3,
-            "pattern": "^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$",
-            "title": "Email",
-            "type": "string"
-          },
-          "first_name": {
-            "maxLength": 100,
-            "minLength": 1,
-            "title": "First Name",
-            "type": "string"
-          },
-          "last_name": {
-            "maxLength": 100,
-            "minLength": 1,
-            "title": "Last Name",
-            "type": "string"
-          },
-          "password": {
-            "minLength": 12,
-            "title": "Password",
-            "type": "string"
-          }
-        },
-        "required": [
-          "email",
-          "password",
-          "first_name",
-          "last_name"
-        ],
-        "title": "RegisterIn",
-        "type": "object"
-      },
       "RequestDecisionIn": {
         "description": "Decision d'un administrateur. La remarque est optionnelle (R4).",
         "properties": {
@@ -1365,7 +1367,9 @@
         "description": "Nature d'une demande. Seules creation et modification passent par une demande (R2).",
         "enum": [
           "vm_create",
-          "vm_update"
+          "vm_update",
+          "storage_create",
+          "storage_update"
         ],
         "title": "RequestKind",
         "type": "string"
@@ -1478,9 +1482,10 @@
         "type": "string"
       },
       "ResourceType": {
-        "description": "Type de ressource gerable et partageable par l'API.",
+        "description": "Type de ressource IaaS. Une ressource est une VM ou un espace de stockage.",
         "enum": [
-          "vm"
+          "vm",
+          "storage"
         ],
         "title": "ResourceType",
         "type": "string"
@@ -1597,6 +1602,113 @@
         ],
         "title": "ShareStatus",
         "type": "string"
+      },
+      "StorageCreateRequestIn": {
+        "description": "Demande de creation : nom et taille en Go (F8).",
+        "examples": [
+          {
+            "name": "backup-alpha",
+            "size_gb": 50
+          }
+        ],
+        "properties": {
+          "name": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "size_gb": {
+            "minimum": 1.0,
+            "title": "Size Gb",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "name",
+          "size_gb"
+        ],
+        "title": "StorageCreateRequestIn",
+        "type": "object"
+      },
+      "StorageOut": {
+        "description": "Espace de stockage renvoye par l'API, avec son IP et sa taille en Go.",
+        "properties": {
+          "created_at": {
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "ip_address": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ip Address"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "origin_project_id": {
+            "title": "Origin Project Id",
+            "type": "string"
+          },
+          "shared": {
+            "default": false,
+            "title": "Shared",
+            "type": "boolean"
+          },
+          "size_gb": {
+            "title": "Size Gb",
+            "type": "integer"
+          },
+          "state": {
+            "$ref": "#/components/schemas/StorageState"
+          }
+        },
+        "required": [
+          "id",
+          "origin_project_id",
+          "name",
+          "ip_address",
+          "size_gb",
+          "state",
+          "created_at"
+        ],
+        "title": "StorageOut",
+        "type": "object"
+      },
+      "StorageState": {
+        "description": "Etat local connu d'un espace de stockage.",
+        "enum": [
+          "available",
+          "deleting"
+        ],
+        "title": "StorageState",
+        "type": "string"
+      },
+      "StorageUpdateRequestIn": {
+        "description": "Demande de modification de la taille, en Go (F9).",
+        "properties": {
+          "size_gb": {
+            "minimum": 1.0,
+            "title": "Size Gb",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "size_gb"
+        ],
+        "title": "StorageUpdateRequestIn",
+        "type": "object"
       },
       "TokenOut": {
         "properties": {
@@ -1919,215 +2031,6 @@
   },
   "openapi": "3.1.0",
   "paths": {
-    "/api/v1/admin/admins": {
-      "post": {
-        "description": "Cree un compte admin dans l'IAM et conserve sa reference locale.",
-        "operationId": "create_admin",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/RegisterIn"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "201": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IdentityOut"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "401": {
-            "content": {
-              "application/json": {
-                "examples": {
-                  "unauthorized": {
-                    "summary": "unauthorized",
-                    "value": {
-                      "error": {
-                        "code": "unauthorized",
-                        "message": "Authentification requise ou jeton invalide."
-                      }
-                    }
-                  }
-                },
-                "schema": {
-                  "properties": {
-                    "error": {
-                      "properties": {
-                        "code": {
-                          "type": "string"
-                        },
-                        "details": {},
-                        "message": {
-                          "type": "string"
-                        }
-                      },
-                      "required": [
-                        "code",
-                        "message",
-                        "details"
-                      ],
-                      "type": "object"
-                    }
-                  },
-                  "required": [
-                    "error"
-                  ],
-                  "type": "object"
-                }
-              }
-            },
-            "description": "Erreur : voir les exemples pour les codes possibles."
-          },
-          "403": {
-            "content": {
-              "application/json": {
-                "examples": {
-                  "forbidden": {
-                    "summary": "forbidden",
-                    "value": {
-                      "error": {
-                        "code": "forbidden",
-                        "message": "Action refusee."
-                      }
-                    }
-                  }
-                },
-                "schema": {
-                  "properties": {
-                    "error": {
-                      "properties": {
-                        "code": {
-                          "type": "string"
-                        },
-                        "details": {},
-                        "message": {
-                          "type": "string"
-                        }
-                      },
-                      "required": [
-                        "code",
-                        "message",
-                        "details"
-                      ],
-                      "type": "object"
-                    }
-                  },
-                  "required": [
-                    "error"
-                  ],
-                  "type": "object"
-                }
-              }
-            },
-            "description": "Erreur : voir les exemples pour les codes possibles."
-          },
-          "409": {
-            "content": {
-              "application/json": {
-                "examples": {
-                  "conflict": {
-                    "summary": "conflict",
-                    "value": {
-                      "error": {
-                        "code": "conflict",
-                        "message": "Conflit avec l'etat actuel."
-                      }
-                    }
-                  }
-                },
-                "schema": {
-                  "properties": {
-                    "error": {
-                      "properties": {
-                        "code": {
-                          "type": "string"
-                        },
-                        "details": {},
-                        "message": {
-                          "type": "string"
-                        }
-                      },
-                      "required": [
-                        "code",
-                        "message",
-                        "details"
-                      ],
-                      "type": "object"
-                    }
-                  },
-                  "required": [
-                    "error"
-                  ],
-                  "type": "object"
-                }
-              }
-            },
-            "description": "Erreur : voir les exemples pour les codes possibles."
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "examples": {
-                  "validation_error": {
-                    "summary": "validation_error",
-                    "value": {
-                      "error": {
-                        "code": "validation_error",
-                        "message": "Corps ou parametres invalides."
-                      }
-                    }
-                  }
-                },
-                "schema": {
-                  "properties": {
-                    "error": {
-                      "properties": {
-                        "code": {
-                          "type": "string"
-                        },
-                        "details": {},
-                        "message": {
-                          "type": "string"
-                        }
-                      },
-                      "required": [
-                        "code",
-                        "message",
-                        "details"
-                      ],
-                      "type": "object"
-                    }
-                  },
-                  "required": [
-                    "error"
-                  ],
-                  "type": "object"
-                }
-              }
-            },
-            "description": "Erreur : voir les exemples pour les codes possibles."
-          }
-        },
-        "security": [
-          {
-            "HTTPBearer": []
-          }
-        ],
-        "summary": "Créer un administrateur",
-        "tags": [
-          "admin: gestion des comptes"
-        ]
-      }
-    },
     "/api/v1/admin/packs": {
       "post": {
         "description": "F17 : definit un pack (RAM, vCPU, VRAM, SSD).",
@@ -2376,8 +2279,7 @@
         ],
         "summary": "Creer un pack",
         "tags": [
-          "admin: gestion des packs",
-          "admin: gestion des packs"
+          "packs"
         ]
       }
     },
@@ -2623,8 +2525,7 @@
         ],
         "summary": "Supprimer un pack",
         "tags": [
-          "admin: gestion des packs",
-          "admin: gestion des packs"
+          "packs"
         ]
       },
       "patch": {
@@ -2885,8 +2786,7 @@
         ],
         "summary": "Modifier un pack",
         "tags": [
-          "admin: gestion des packs",
-          "admin: gestion des packs"
+          "packs"
         ]
       }
     },
@@ -4483,124 +4383,6 @@
           }
         ],
         "summary": "Changer son mot de passe",
-        "tags": [
-          "auth"
-        ]
-      }
-    },
-    "/api/v1/auth/register": {
-      "post": {
-        "description": "Cree un compte IAM, conserve sa reference et renvoie le jeton emis.",
-        "operationId": "register",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/RegisterIn"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "201": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TokenOut"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "409": {
-            "content": {
-              "application/json": {
-                "examples": {
-                  "conflict": {
-                    "summary": "conflict",
-                    "value": {
-                      "error": {
-                        "code": "conflict",
-                        "message": "Conflit avec l'etat actuel."
-                      }
-                    }
-                  }
-                },
-                "schema": {
-                  "properties": {
-                    "error": {
-                      "properties": {
-                        "code": {
-                          "type": "string"
-                        },
-                        "details": {},
-                        "message": {
-                          "type": "string"
-                        }
-                      },
-                      "required": [
-                        "code",
-                        "message",
-                        "details"
-                      ],
-                      "type": "object"
-                    }
-                  },
-                  "required": [
-                    "error"
-                  ],
-                  "type": "object"
-                }
-              }
-            },
-            "description": "Erreur : voir les exemples pour les codes possibles."
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "examples": {
-                  "validation_error": {
-                    "summary": "validation_error",
-                    "value": {
-                      "error": {
-                        "code": "validation_error",
-                        "message": "Corps ou parametres invalides."
-                      }
-                    }
-                  }
-                },
-                "schema": {
-                  "properties": {
-                    "error": {
-                      "properties": {
-                        "code": {
-                          "type": "string"
-                        },
-                        "details": {},
-                        "message": {
-                          "type": "string"
-                        }
-                      },
-                      "required": [
-                        "code",
-                        "message",
-                        "details"
-                      ],
-                      "type": "object"
-                    }
-                  },
-                  "required": [
-                    "error"
-                  ],
-                  "type": "object"
-                }
-              }
-            },
-            "description": "Erreur : voir les exemples pour les codes possibles."
-          }
-        },
-        "summary": "Créer un compte",
         "tags": [
           "auth"
         ]
@@ -11023,6 +10805,2293 @@
         ]
       }
     },
+    "/api/v1/projects/{project_id}/storages": {
+      "get": {
+        "description": "F10 : liste les stockages du projet, y compris les stockages partages.",
+        "operationId": "list_storages",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "project_id",
+            "required": true,
+            "schema": {
+              "title": "Project Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "state",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/StorageState"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "State"
+            }
+          },
+          {
+            "in": "query",
+            "name": "shared",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Shared"
+            }
+          },
+          {
+            "in": "query",
+            "name": "ip_address",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 45,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Ip Address"
+            }
+          },
+          {
+            "in": "query",
+            "name": "name",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 128,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Name"
+            }
+          },
+          {
+            "description": "Numero de page, a partir de 1.",
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "default": 1,
+              "description": "Numero de page, a partir de 1.",
+              "minimum": 1,
+              "title": "Page",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Taille de page, 100 maximum.",
+            "in": "query",
+            "name": "page_size",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "description": "Taille de page, 100 maximum.",
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Page Size",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Page_StorageOut_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "examples": {
+                  "unauthorized": {
+                    "summary": "unauthorized",
+                    "value": {
+                      "error": {
+                        "code": "unauthorized",
+                        "message": "Authentification requise ou jeton invalide."
+                      }
+                    }
+                  }
+                },
+                "schema": {
+                  "properties": {
+                    "error": {
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "details": {},
+                        "message": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message",
+                        "details"
+                      ],
+                      "type": "object"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Erreur : voir les exemples pour les codes possibles."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "examples": {
+                  "forbidden": {
+                    "summary": "forbidden",
+                    "value": {
+                      "error": {
+                        "code": "forbidden",
+                        "message": "Action refusee."
+                      }
+                    }
+                  }
+                },
+                "schema": {
+                  "properties": {
+                    "error": {
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "details": {},
+                        "message": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message",
+                        "details"
+                      ],
+                      "type": "object"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Erreur : voir les exemples pour les codes possibles."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "examples": {
+                  "not_found": {
+                    "summary": "not_found",
+                    "value": {
+                      "error": {
+                        "code": "not_found",
+                        "message": "Ressource introuvable."
+                      }
+                    }
+                  }
+                },
+                "schema": {
+                  "properties": {
+                    "error": {
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "details": {},
+                        "message": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message",
+                        "details"
+                      ],
+                      "type": "object"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Erreur : voir les exemples pour les codes possibles."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "examples": {
+                  "invalid_state": {
+                    "summary": "invalid_state",
+                    "value": {
+                      "error": {
+                        "code": "invalid_state",
+                        "message": "Operation incompatible avec l'etat actuel."
+                      }
+                    }
+                  }
+                },
+                "schema": {
+                  "properties": {
+                    "error": {
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "details": {},
+                        "message": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message",
+                        "details"
+                      ],
+                      "type": "object"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Erreur : voir les exemples pour les codes possibles."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "examples": {
+                  "validation_error": {
+                    "summary": "validation_error",
+                    "value": {
+                      "error": {
+                        "code": "validation_error",
+                        "message": "Corps ou parametres invalides."
+                      }
+                    }
+                  }
+                },
+                "schema": {
+                  "properties": {
+                    "error": {
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "details": {},
+                        "message": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message",
+                        "details"
+                      ],
+                      "type": "object"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Erreur : voir les exemples pour les codes possibles."
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "examples": {
+                  "upstream_unavailable": {
+                    "summary": "upstream_unavailable",
+                    "value": {
+                      "error": {
+                        "code": "upstream_unavailable",
+                        "message": "Un groupe externe est indisponible. Rien n'a ete applique."
+                      }
+                    }
+                  }
+                },
+                "schema": {
+                  "properties": {
+                    "error": {
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "details": {},
+                        "message": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message",
+                        "details"
+                      ],
+                      "type": "object"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Erreur : voir les exemples pour les codes possibles."
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Consulter les stockages",
+        "tags": [
+          "stockages"
+        ]
+      },
+      "post": {
+        "description": "F8 : depose une demande de creation liee au projet.",
+        "operationId": "request_create_storage",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "project_id",
+            "required": true,
+            "schema": {
+              "title": "Project Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StorageCreateRequestIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RequestOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "examples": {
+                  "unauthorized": {
+                    "summary": "unauthorized",
+                    "value": {
+                      "error": {
+                        "code": "unauthorized",
+                        "message": "Authentification requise ou jeton invalide."
+                      }
+                    }
+                  }
+                },
+                "schema": {
+                  "properties": {
+                    "error": {
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "details": {},
+                        "message": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message",
+                        "details"
+                      ],
+                      "type": "object"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Erreur : voir les exemples pour les codes possibles."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "examples": {
+                  "forbidden": {
+                    "summary": "forbidden",
+                    "value": {
+                      "error": {
+                        "code": "forbidden",
+                        "message": "Action refusee."
+                      }
+                    }
+                  }
+                },
+                "schema": {
+                  "properties": {
+                    "error": {
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "details": {},
+                        "message": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message",
+                        "details"
+                      ],
+                      "type": "object"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Erreur : voir les exemples pour les codes possibles."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "examples": {
+                  "not_found": {
+                    "summary": "not_found",
+                    "value": {
+                      "error": {
+                        "code": "not_found",
+                        "message": "Ressource introuvable."
+                      }
+                    }
+                  }
+                },
+                "schema": {
+                  "properties": {
+                    "error": {
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "details": {},
+                        "message": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message",
+                        "details"
+                      ],
+                      "type": "object"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Erreur : voir les exemples pour les codes possibles."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "examples": {
+                  "invalid_state": {
+                    "summary": "invalid_state",
+                    "value": {
+                      "error": {
+                        "code": "invalid_state",
+                        "message": "Operation incompatible avec l'etat actuel."
+                      }
+                    }
+                  }
+                },
+                "schema": {
+                  "properties": {
+                    "error": {
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "details": {},
+                        "message": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message",
+                        "details"
+                      ],
+                      "type": "object"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Erreur : voir les exemples pour les codes possibles."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "examples": {
+                  "validation_error": {
+                    "summary": "validation_error",
+                    "value": {
+                      "error": {
+                        "code": "validation_error",
+                        "message": "Corps ou parametres invalides."
+                      }
+                    }
+                  }
+                },
+                "schema": {
+                  "properties": {
+                    "error": {
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "details": {},
+                        "message": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message",
+                        "details"
+                      ],
+                      "type": "object"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Erreur : voir les exemples pour les codes possibles."
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "examples": {
+                  "upstream_unavailable": {
+                    "summary": "upstream_unavailable",
+                    "value": {
+                      "error": {
+                        "code": "upstream_unavailable",
+                        "message": "Un groupe externe est indisponible. Rien n'a ete applique."
+                      }
+                    }
+                  }
+                },
+                "schema": {
+                  "properties": {
+                    "error": {
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "details": {},
+                        "message": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message",
+                        "details"
+                      ],
+                      "type": "object"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Erreur : voir les exemples pour les codes possibles."
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Demander la creation d'un stockage",
+        "tags": [
+          "stockages"
+        ]
+      }
+    },
+    "/api/v1/projects/{project_id}/storages/{storage_id}": {
+      "get": {
+        "description": "F10 : consulte un stockage visible dans le projet.",
+        "operationId": "get_storage",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "project_id",
+            "required": true,
+            "schema": {
+              "title": "Project Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "storage_id",
+            "required": true,
+            "schema": {
+              "title": "Storage Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StorageOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "examples": {
+                  "unauthorized": {
+                    "summary": "unauthorized",
+                    "value": {
+                      "error": {
+                        "code": "unauthorized",
+                        "message": "Authentification requise ou jeton invalide."
+                      }
+                    }
+                  }
+                },
+                "schema": {
+                  "properties": {
+                    "error": {
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "details": {},
+                        "message": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message",
+                        "details"
+                      ],
+                      "type": "object"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Erreur : voir les exemples pour les codes possibles."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "examples": {
+                  "forbidden": {
+                    "summary": "forbidden",
+                    "value": {
+                      "error": {
+                        "code": "forbidden",
+                        "message": "Action refusee."
+                      }
+                    }
+                  }
+                },
+                "schema": {
+                  "properties": {
+                    "error": {
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "details": {},
+                        "message": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message",
+                        "details"
+                      ],
+                      "type": "object"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Erreur : voir les exemples pour les codes possibles."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "examples": {
+                  "not_found": {
+                    "summary": "not_found",
+                    "value": {
+                      "error": {
+                        "code": "not_found",
+                        "message": "Ressource introuvable."
+                      }
+                    }
+                  }
+                },
+                "schema": {
+                  "properties": {
+                    "error": {
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "details": {},
+                        "message": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message",
+                        "details"
+                      ],
+                      "type": "object"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Erreur : voir les exemples pour les codes possibles."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "examples": {
+                  "invalid_state": {
+                    "summary": "invalid_state",
+                    "value": {
+                      "error": {
+                        "code": "invalid_state",
+                        "message": "Operation incompatible avec l'etat actuel."
+                      }
+                    }
+                  }
+                },
+                "schema": {
+                  "properties": {
+                    "error": {
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "details": {},
+                        "message": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message",
+                        "details"
+                      ],
+                      "type": "object"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Erreur : voir les exemples pour les codes possibles."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "examples": {
+                  "validation_error": {
+                    "summary": "validation_error",
+                    "value": {
+                      "error": {
+                        "code": "validation_error",
+                        "message": "Corps ou parametres invalides."
+                      }
+                    }
+                  }
+                },
+                "schema": {
+                  "properties": {
+                    "error": {
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "details": {},
+                        "message": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message",
+                        "details"
+                      ],
+                      "type": "object"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Erreur : voir les exemples pour les codes possibles."
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "examples": {
+                  "upstream_unavailable": {
+                    "summary": "upstream_unavailable",
+                    "value": {
+                      "error": {
+                        "code": "upstream_unavailable",
+                        "message": "Un groupe externe est indisponible. Rien n'a ete applique."
+                      }
+                    }
+                  }
+                },
+                "schema": {
+                  "properties": {
+                    "error": {
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "details": {},
+                        "message": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message",
+                        "details"
+                      ],
+                      "type": "object"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Erreur : voir les exemples pour les codes possibles."
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Consulter un stockage",
+        "tags": [
+          "stockages"
+        ]
+      }
+    },
+    "/api/v1/projects/{project_id}/storages/{storage_id}/deletion": {
+      "post": {
+        "description": "Protocole en deux temps. Les donnees sont perdues meme si le stockage est non vide.",
+        "operationId": "delete_storage",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "project_id",
+            "required": true,
+            "schema": {
+              "title": "Project Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "storage_id",
+            "required": true,
+            "schema": {
+              "title": "Storage Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeletionIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/DeletionPreviewOut"
+                    },
+                    {
+                      "$ref": "#/components/schemas/DeletionOut"
+                    }
+                  ],
+                  "title": "Response Delete Storage"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "examples": {
+                  "bad_request": {
+                    "summary": "bad_request",
+                    "value": {
+                      "error": {
+                        "code": "bad_request",
+                        "message": "Requete invalide."
+                      }
+                    }
+                  }
+                },
+                "schema": {
+                  "properties": {
+                    "error": {
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "details": {},
+                        "message": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message",
+                        "details"
+                      ],
+                      "type": "object"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Erreur : voir les exemples pour les codes possibles."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "examples": {
+                  "unauthorized": {
+                    "summary": "unauthorized",
+                    "value": {
+                      "error": {
+                        "code": "unauthorized",
+                        "message": "Authentification requise ou jeton invalide."
+                      }
+                    }
+                  }
+                },
+                "schema": {
+                  "properties": {
+                    "error": {
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "details": {},
+                        "message": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message",
+                        "details"
+                      ],
+                      "type": "object"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Erreur : voir les exemples pour les codes possibles."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "examples": {
+                  "forbidden": {
+                    "summary": "forbidden",
+                    "value": {
+                      "error": {
+                        "code": "forbidden",
+                        "message": "Action refusee."
+                      }
+                    }
+                  }
+                },
+                "schema": {
+                  "properties": {
+                    "error": {
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "details": {},
+                        "message": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message",
+                        "details"
+                      ],
+                      "type": "object"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Erreur : voir les exemples pour les codes possibles."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "examples": {
+                  "not_found": {
+                    "summary": "not_found",
+                    "value": {
+                      "error": {
+                        "code": "not_found",
+                        "message": "Ressource introuvable."
+                      }
+                    }
+                  }
+                },
+                "schema": {
+                  "properties": {
+                    "error": {
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "details": {},
+                        "message": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message",
+                        "details"
+                      ],
+                      "type": "object"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Erreur : voir les exemples pour les codes possibles."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "examples": {
+                  "invalid_state": {
+                    "summary": "invalid_state",
+                    "value": {
+                      "error": {
+                        "code": "invalid_state",
+                        "message": "Operation incompatible avec l'etat actuel."
+                      }
+                    }
+                  }
+                },
+                "schema": {
+                  "properties": {
+                    "error": {
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "details": {},
+                        "message": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message",
+                        "details"
+                      ],
+                      "type": "object"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Erreur : voir les exemples pour les codes possibles."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "examples": {
+                  "validation_error": {
+                    "summary": "validation_error",
+                    "value": {
+                      "error": {
+                        "code": "validation_error",
+                        "message": "Corps ou parametres invalides."
+                      }
+                    }
+                  }
+                },
+                "schema": {
+                  "properties": {
+                    "error": {
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "details": {},
+                        "message": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message",
+                        "details"
+                      ],
+                      "type": "object"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Erreur : voir les exemples pour les codes possibles."
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "examples": {
+                  "upstream_unavailable": {
+                    "summary": "upstream_unavailable",
+                    "value": {
+                      "error": {
+                        "code": "upstream_unavailable",
+                        "message": "Un groupe externe est indisponible. Rien n'a ete applique."
+                      }
+                    }
+                  }
+                },
+                "schema": {
+                  "properties": {
+                    "error": {
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "details": {},
+                        "message": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message",
+                        "details"
+                      ],
+                      "type": "object"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Erreur : voir les exemples pour les codes possibles."
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Supprimer un stockage",
+        "tags": [
+          "stockages"
+        ]
+      }
+    },
+    "/api/v1/projects/{project_id}/storages/{storage_id}/shares": {
+      "get": {
+        "description": "Partages emis pour ce stockage, filtrables par etat et destinataire.",
+        "operationId": "list_storage_shares",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "project_id",
+            "required": true,
+            "schema": {
+              "title": "Project Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "storage_id",
+            "required": true,
+            "schema": {
+              "title": "Storage Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/ShareStatus"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "in": "query",
+            "name": "dest_project_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Dest Project Id"
+            }
+          },
+          {
+            "description": "Numero de page, a partir de 1.",
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "default": 1,
+              "description": "Numero de page, a partir de 1.",
+              "minimum": 1,
+              "title": "Page",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Taille de page, 100 maximum.",
+            "in": "query",
+            "name": "page_size",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "description": "Taille de page, 100 maximum.",
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Page Size",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Page_ShareOut_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "examples": {
+                  "unauthorized": {
+                    "summary": "unauthorized",
+                    "value": {
+                      "error": {
+                        "code": "unauthorized",
+                        "message": "Authentification requise ou jeton invalide."
+                      }
+                    }
+                  }
+                },
+                "schema": {
+                  "properties": {
+                    "error": {
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "details": {},
+                        "message": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message",
+                        "details"
+                      ],
+                      "type": "object"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Erreur : voir les exemples pour les codes possibles."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "examples": {
+                  "forbidden": {
+                    "summary": "forbidden",
+                    "value": {
+                      "error": {
+                        "code": "forbidden",
+                        "message": "Action refusee."
+                      }
+                    }
+                  }
+                },
+                "schema": {
+                  "properties": {
+                    "error": {
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "details": {},
+                        "message": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message",
+                        "details"
+                      ],
+                      "type": "object"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Erreur : voir les exemples pour les codes possibles."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "examples": {
+                  "not_found": {
+                    "summary": "not_found",
+                    "value": {
+                      "error": {
+                        "code": "not_found",
+                        "message": "Ressource introuvable."
+                      }
+                    }
+                  }
+                },
+                "schema": {
+                  "properties": {
+                    "error": {
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "details": {},
+                        "message": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message",
+                        "details"
+                      ],
+                      "type": "object"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Erreur : voir les exemples pour les codes possibles."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "examples": {
+                  "validation_error": {
+                    "summary": "validation_error",
+                    "value": {
+                      "error": {
+                        "code": "validation_error",
+                        "message": "Corps ou parametres invalides."
+                      }
+                    }
+                  }
+                },
+                "schema": {
+                  "properties": {
+                    "error": {
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "details": {},
+                        "message": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message",
+                        "details"
+                      ],
+                      "type": "object"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Erreur : voir les exemples pour les codes possibles."
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Lister les partages d'un stockage",
+        "tags": [
+          "partages"
+        ]
+      },
+      "post": {
+        "description": "Cree un partage actif depuis le projet d'origine du stockage.",
+        "operationId": "share_storage",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "project_id",
+            "required": true,
+            "schema": {
+              "title": "Project Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "storage_id",
+            "required": true,
+            "schema": {
+              "title": "Storage Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ShareCreateIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ShareOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "examples": {
+                  "unauthorized": {
+                    "summary": "unauthorized",
+                    "value": {
+                      "error": {
+                        "code": "unauthorized",
+                        "message": "Authentification requise ou jeton invalide."
+                      }
+                    }
+                  }
+                },
+                "schema": {
+                  "properties": {
+                    "error": {
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "details": {},
+                        "message": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message",
+                        "details"
+                      ],
+                      "type": "object"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Erreur : voir les exemples pour les codes possibles."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "examples": {
+                  "forbidden": {
+                    "summary": "forbidden",
+                    "value": {
+                      "error": {
+                        "code": "forbidden",
+                        "message": "Action refusee."
+                      }
+                    }
+                  }
+                },
+                "schema": {
+                  "properties": {
+                    "error": {
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "details": {},
+                        "message": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message",
+                        "details"
+                      ],
+                      "type": "object"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Erreur : voir les exemples pour les codes possibles."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "examples": {
+                  "not_found": {
+                    "summary": "not_found",
+                    "value": {
+                      "error": {
+                        "code": "not_found",
+                        "message": "Ressource introuvable."
+                      }
+                    }
+                  }
+                },
+                "schema": {
+                  "properties": {
+                    "error": {
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "details": {},
+                        "message": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message",
+                        "details"
+                      ],
+                      "type": "object"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Erreur : voir les exemples pour les codes possibles."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "examples": {
+                  "conflict": {
+                    "summary": "conflict",
+                    "value": {
+                      "error": {
+                        "code": "conflict",
+                        "message": "Conflit avec l'etat actuel."
+                      }
+                    }
+                  },
+                  "invalid_state": {
+                    "summary": "invalid_state",
+                    "value": {
+                      "error": {
+                        "code": "invalid_state",
+                        "message": "Operation incompatible avec l'etat actuel."
+                      }
+                    }
+                  }
+                },
+                "schema": {
+                  "properties": {
+                    "error": {
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "details": {},
+                        "message": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message",
+                        "details"
+                      ],
+                      "type": "object"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Erreur : voir les exemples pour les codes possibles."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "examples": {
+                  "validation_error": {
+                    "summary": "validation_error",
+                    "value": {
+                      "error": {
+                        "code": "validation_error",
+                        "message": "Corps ou parametres invalides."
+                      }
+                    }
+                  }
+                },
+                "schema": {
+                  "properties": {
+                    "error": {
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "details": {},
+                        "message": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message",
+                        "details"
+                      ],
+                      "type": "object"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Erreur : voir les exemples pour les codes possibles."
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Partager un stockage",
+        "tags": [
+          "partages"
+        ]
+      }
+    },
+    "/api/v1/projects/{project_id}/storages/{storage_id}/update-requests": {
+      "post": {
+        "description": "F9 : la modification porte uniquement sur la taille.",
+        "operationId": "request_update_storage",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "project_id",
+            "required": true,
+            "schema": {
+              "title": "Project Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "storage_id",
+            "required": true,
+            "schema": {
+              "title": "Storage Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StorageUpdateRequestIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RequestOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "examples": {
+                  "bad_request": {
+                    "summary": "bad_request",
+                    "value": {
+                      "error": {
+                        "code": "bad_request",
+                        "message": "Requete invalide."
+                      }
+                    }
+                  }
+                },
+                "schema": {
+                  "properties": {
+                    "error": {
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "details": {},
+                        "message": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message",
+                        "details"
+                      ],
+                      "type": "object"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Erreur : voir les exemples pour les codes possibles."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "examples": {
+                  "unauthorized": {
+                    "summary": "unauthorized",
+                    "value": {
+                      "error": {
+                        "code": "unauthorized",
+                        "message": "Authentification requise ou jeton invalide."
+                      }
+                    }
+                  }
+                },
+                "schema": {
+                  "properties": {
+                    "error": {
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "details": {},
+                        "message": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message",
+                        "details"
+                      ],
+                      "type": "object"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Erreur : voir les exemples pour les codes possibles."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "examples": {
+                  "forbidden": {
+                    "summary": "forbidden",
+                    "value": {
+                      "error": {
+                        "code": "forbidden",
+                        "message": "Action refusee."
+                      }
+                    }
+                  }
+                },
+                "schema": {
+                  "properties": {
+                    "error": {
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "details": {},
+                        "message": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message",
+                        "details"
+                      ],
+                      "type": "object"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Erreur : voir les exemples pour les codes possibles."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "examples": {
+                  "not_found": {
+                    "summary": "not_found",
+                    "value": {
+                      "error": {
+                        "code": "not_found",
+                        "message": "Ressource introuvable."
+                      }
+                    }
+                  }
+                },
+                "schema": {
+                  "properties": {
+                    "error": {
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "details": {},
+                        "message": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message",
+                        "details"
+                      ],
+                      "type": "object"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Erreur : voir les exemples pour les codes possibles."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "examples": {
+                  "conflict": {
+                    "summary": "conflict",
+                    "value": {
+                      "error": {
+                        "code": "conflict",
+                        "message": "Conflit avec l'etat actuel."
+                      }
+                    }
+                  },
+                  "invalid_state": {
+                    "summary": "invalid_state",
+                    "value": {
+                      "error": {
+                        "code": "invalid_state",
+                        "message": "Operation incompatible avec l'etat actuel."
+                      }
+                    }
+                  }
+                },
+                "schema": {
+                  "properties": {
+                    "error": {
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "details": {},
+                        "message": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message",
+                        "details"
+                      ],
+                      "type": "object"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Erreur : voir les exemples pour les codes possibles."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "examples": {
+                  "validation_error": {
+                    "summary": "validation_error",
+                    "value": {
+                      "error": {
+                        "code": "validation_error",
+                        "message": "Corps ou parametres invalides."
+                      }
+                    }
+                  }
+                },
+                "schema": {
+                  "properties": {
+                    "error": {
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "details": {},
+                        "message": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message",
+                        "details"
+                      ],
+                      "type": "object"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Erreur : voir les exemples pour les codes possibles."
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "examples": {
+                  "upstream_unavailable": {
+                    "summary": "upstream_unavailable",
+                    "value": {
+                      "error": {
+                        "code": "upstream_unavailable",
+                        "message": "Un groupe externe est indisponible. Rien n'a ete applique."
+                      }
+                    }
+                  }
+                },
+                "schema": {
+                  "properties": {
+                    "error": {
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "details": {},
+                        "message": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message",
+                        "details"
+                      ],
+                      "type": "object"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Erreur : voir les exemples pour les codes possibles."
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Demander la modification d'un stockage",
+        "tags": [
+          "stockages"
+        ]
+      }
+    },
     "/api/v1/projects/{project_id}/vms": {
       "get": {
         "description": "F3 : liste les VMs du projet, y compris les VMs partagees.",
@@ -14691,8 +16760,7 @@
         ],
         "summary": "Accepter une demande",
         "tags": [
-          "admin: traitement des demandes",
-          "admin: traitement des demandes"
+          "demandes"
         ]
       }
     },
@@ -15218,8 +17286,7 @@
         ],
         "summary": "Refuser une demande",
         "tags": [
-          "admin: traitement des demandes",
-          "admin: traitement des demandes"
+          "demandes"
         ]
       }
     },
@@ -15840,7 +17907,7 @@
     },
     "/ready": {
       "get": {
-        "description": "Sonde de disponibilite : verifie les dependances necessaires au service.\n\nA ce stade, la base de donnees est la seule dependance reelle. Les ports\nhyperviseur, reseau, IAM et notifications sont encore des mocks : les sonder\nn'apporterait aucune information d'exploitation.",
+        "description": "Sonde de disponibilite : verifie les dependances necessaires au service.\n\nA ce stade, la base de donnees est la seule dependance reelle. Les ports\nhyperviseur, stockage, reseau, DNS, IAM et notifications sont encore des\nmocks : les sonder n'apporterait aucune information d'exploitation.",
         "operationId": "get_readiness",
         "responses": {
           "200": {

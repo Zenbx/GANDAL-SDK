@@ -28,13 +28,29 @@ if curl -s -o /dev/null "http://127.0.0.1:$PORT/"; then
     exit 1
 fi
 
+# iaas-api n'appelle plus create_all : le schema passe par Alembic. Sans
+# `upgrade head`, le lifespan seed_rights plante sur « no such table: rights ».
+DB_URL="sqlite:///$WORK/iaas.db"
+IAM_SECRET="integration-$(date +%s)-$RANDOM-$RANDOM"
 (
     cd "$API_DIR"
-    IAM_JWT_SECRET="integration-$(date +%s)-$RANDOM-$RANDOM" \
+    IAM_JWT_SECRET="$IAM_SECRET" \
     IAM_SEED_DEMO_USERS=true \
-    DATABASE_URL="sqlite:///$WORK/iaas.db" \
+    DATABASE_URL="$DB_URL" \
+        "$API_PYTHON" -m alembic upgrade head
+) >"$LOG" 2>&1 || {
+    echo "Echec des migrations Alembic d'iaas-api :" >&2
+    cat "$LOG" >&2
+    exit 1
+}
+
+(
+    cd "$API_DIR"
+    IAM_JWT_SECRET="$IAM_SECRET" \
+    IAM_SEED_DEMO_USERS=true \
+    DATABASE_URL="$DB_URL" \
         exec "$API_PYTHON" -m uvicorn app.main:app --host 127.0.0.1 --port "$PORT"
-) >"$LOG" 2>&1 &
+) >>"$LOG" 2>&1 &
 API_PID=$!
 
 for _ in $(seq 1 60); do

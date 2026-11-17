@@ -32,14 +32,17 @@ ROOT = Path(__file__).resolve().parent.parent
 # Pour chaque service : code execute dans son depot, et variables d'environnement.
 _SERVICES = {
     # app.openapi() ne demarre ni base ni lifespan ; la configuration lue est factice.
+    # ensure_ascii=True : stdout Windows (cp1252) ne casse plus les accents ;
+    # le fichier final est reecrit en UTF-8 avec ensure_ascii=False.
     "iaas-api": (
-        "import json, sys; from app.main import app; json.dump(app.openapi(), sys.stdout)",
+        "import json, sys; from app.main import app; "
+        "json.dump(app.openapi(), sys.stdout, ensure_ascii=True)",
         {"IAM_JWT_SECRET": "openapi-dump", "DATABASE_URL": "sqlite:///:memory:"},
     ),
     # Le schema de la cellule se produit sans pool ni secret.
     "gandal-hypervisor": (
         "import json, sys; from gandal_hypervisor.api.schema import openapi; "
-        "json.dump(openapi(), sys.stdout)",
+        "json.dump(openapi(), sys.stdout, ensure_ascii=True)",
         {"PYTHONPATH": "src"},
     ),
 }
@@ -59,17 +62,20 @@ def fetch_from_url(base_url: str) -> dict:
 def dump_from_app(app_dir: Path, python: str, service: str = "iaas-api") -> dict:
     """Importe l'application FastAPI du depot du service et lit son schema."""
     snippet, extra_env = _SERVICES[service]
+    # Bytes + UTF-8 : sous Windows, text=True decode en cp1252 et casse les
+    # descriptions OpenAPI (accents) puis git diff / CI.
+    env = {**os.environ, **extra_env, "PYTHONIOENCODING": "utf-8"}
     result = subprocess.run(
         [python, "-c", snippet],
         cwd=app_dir,
-        env={**os.environ, **extra_env},
+        env=env,
         capture_output=True,
-        text=True,
         check=False,
     )
     if result.returncode != 0:
-        raise SystemExit(f"Echec de l'import de {service} :\n{result.stderr}")
-    return json.loads(result.stdout)
+        err = result.stderr.decode("utf-8", errors="replace")
+        raise SystemExit(f"Echec de l'import de {service} :\n{err}")
+    return json.loads(result.stdout.decode("utf-8"))
 
 
 def load_from_file(path: Path) -> dict:
@@ -118,7 +124,9 @@ def main() -> None:
         spec = dump_from_app(args.app_dir, args.python, args.service)
 
     output.parent.mkdir(parents=True, exist_ok=True)
-    output.write_text(json.dumps(spec, indent=2, sort_keys=True, ensure_ascii=False) + "\n")
+    # write_bytes : sous Windows, write_text peut reintroduire une page de code locale.
+    payload = json.dumps(spec, indent=2, sort_keys=True, ensure_ascii=False) + "\n"
+    output.write_bytes(payload.encode("utf-8"))
     print(f"{len(spec.get('paths', {}))} routes ecrites dans {output}")
 
 

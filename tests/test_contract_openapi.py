@@ -27,7 +27,9 @@ MODEL_PAIRS: list[tuple[type[BaseModel], str, str]] = [
     (models.ProfileCreateIn, "ProfileCreateIn", "in"),
     (models.ProfileUpdateIn, "ProfileUpdateIn", "in"),
     (models.Page[models.ProfileOut], "Page_ProfileOut_", "out"),
-    (models.RegisterIn, "RegisterIn", "in"),
+    # RegisterIn n'est plus publie : /auth/register et /admin/admins ont quitte
+    # le contrat iaas-api. Les helpers SDK restent (404) tant que le perimetre
+    # n'est pas tranche cote produit.
     (models.ReadinessOut, "ReadinessOut", "out"),
     (models.RequestOut, "RequestOut", "out"),
 ]

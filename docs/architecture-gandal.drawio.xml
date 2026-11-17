@@ -1,0 +1,259 @@
+﻿<mxfile host="app.diagrams.net" modified="2026-11-04T16:15:00.000Z" agent="GANDAL" version="24.7.0" type="device">
+  <diagram id="arch" name="Architecture GANDAL">
+    <mxGraphModel dx="1600" dy="1000" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="1300" background="#FFFFFF" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- Lucide CDN : https://cdn.jsdelivr.net/npm/lucide-static@0.469.0/icons/*.svg -->
+
+        <mxCell id="t1" value="GANDAL" style="text;html=1;fontSize=28;fontStyle=1;fontColor=#0F172A;fontFamily=Helvetica;align=left;" vertex="1" parent="1">
+          <mxGeometry x="80" y="36" width="150" height="36" as="geometry" />
+        </mxCell>
+        <mxCell id="t2" value="Architecture plateforme" style="text;html=1;fontSize=14;fontColor=#64748B;fontFamily=Helvetica;align=left;" vertex="1" parent="1">
+          <mxGeometry x="220" y="46" width="260" height="24" as="geometry" />
+        </mxCell>
+
+        <!-- Consommateurs -->
+        <mxCell id="fe" value="Frontend" style="shape=image;html=1;verticalLabelPosition=bottom;verticalAlign=top;imageAspect=0;aspect=fixed;image=https://cdn.jsdelivr.net/npm/lucide-static@0.469.0/icons/monitor.svg;fontSize=12;fontColor=#334155;fontStyle=1;fontFamily=Helvetica;labelBackgroundColor=none;" vertex="1" parent="1">
+          <mxGeometry x="220" y="100" width="48" height="48" as="geometry" />
+        </mxCell>
+        <mxCell id="cli" value="GANDAL CLI" style="shape=image;html=1;verticalLabelPosition=bottom;verticalAlign=top;imageAspect=0;aspect=fixed;image=https://cdn.jsdelivr.net/npm/lucide-static@0.469.0/icons/terminal.svg;fontSize=12;fontColor=#334155;fontStyle=1;fontFamily=Helvetica;labelBackgroundColor=none;" vertex="1" parent="1">
+          <mxGeometry x="430" y="100" width="48" height="48" as="geometry" />
+        </mxCell>
+        <mxCell id="apps" value="Apps" style="shape=image;html=1;verticalLabelPosition=bottom;verticalAlign=top;imageAspect=0;aspect=fixed;image=https://cdn.jsdelivr.net/npm/lucide-static@0.469.0/icons/boxes.svg;fontSize=12;fontColor=#334155;fontStyle=1;fontFamily=Helvetica;labelBackgroundColor=none;" vertex="1" parent="1">
+          <mxGeometry x="650" y="100" width="48" height="48" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#94A3B8;strokeWidth=1.5;endArrow=blockThin;endFill=1;exitX=0.5;exitY=1;entryX=0.25;entryY=0;" edge="1" parent="1" source="fe" target="sdk">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e2" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#94A3B8;strokeWidth=1.5;endArrow=blockThin;endFill=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="cli" target="sdk">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e3" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#94A3B8;strokeWidth=1.5;endArrow=blockThin;endFill=1;exitX=0.5;exitY=1;entryX=0.75;entryY=0;" edge="1" parent="1" source="apps" target="sdk">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- SDK -->
+        <mxCell id="sdk" value="" style="rounded=1;arcSize=14;fillColor=#F8FAFC;strokeColor=#CBD5E1;strokeWidth=1.5;" vertex="1" parent="1">
+          <mxGeometry x="80" y="220" width="900" height="150" as="geometry" />
+        </mxCell>
+        <mxCell id="sdk-title" value="GANDAL SDK" style="text;html=1;fontSize=13;fontStyle=1;fontColor=#0F172A;fontFamily=Helvetica;align=left;" vertex="1" parent="1">
+          <mxGeometry x="100" y="230" width="140" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="s-orch" value="orchestration" style="shape=image;html=1;verticalLabelPosition=bottom;verticalAlign=top;imageAspect=0;aspect=fixed;image=https://cdn.jsdelivr.net/npm/lucide-static@0.469.0/icons/git-branch.svg;fontSize=11;fontColor=#475569;fontFamily=Helvetica;labelBackgroundColor=none;" vertex="1" parent="1">
+          <mxGeometry x="145" y="270" width="40" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="s-sys" value="systeme" style="shape=image;html=1;verticalLabelPosition=bottom;verticalAlign=top;imageAspect=0;aspect=fixed;image=https://cdn.jsdelivr.net/npm/lucide-static@0.469.0/icons/cpu.svg;fontSize=11;fontColor=#475569;fontFamily=Helvetica;labelBackgroundColor=none;" vertex="1" parent="1">
+          <mxGeometry x="295" y="270" width="40" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="s-iam" value="IAM" style="shape=image;html=1;verticalLabelPosition=bottom;verticalAlign=top;imageAspect=0;aspect=fixed;image=https://cdn.jsdelivr.net/npm/lucide-static@0.469.0/icons/key-round.svg;fontSize=11;fontColor=#475569;fontFamily=Helvetica;labelBackgroundColor=none;" vertex="1" parent="1">
+          <mxGeometry x="435" y="270" width="40" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="s-net" value="reseau" style="shape=image;html=1;verticalLabelPosition=bottom;verticalAlign=top;imageAspect=0;aspect=fixed;image=https://cdn.jsdelivr.net/npm/lucide-static@0.469.0/icons/network.svg;fontSize=11;fontColor=#94A3B8;fontFamily=Helvetica;labelBackgroundColor=none;opacity=70;" vertex="1" parent="1">
+          <mxGeometry x="575" y="270" width="40" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="s-sto" value="stockage" style="shape=image;html=1;verticalLabelPosition=bottom;verticalAlign=top;imageAspect=0;aspect=fixed;image=https://cdn.jsdelivr.net/npm/lucide-static@0.469.0/icons/hard-drive.svg;fontSize=11;fontColor=#94A3B8;fontFamily=Helvetica;labelBackgroundColor=none;opacity=70;" vertex="1" parent="1">
+          <mxGeometry x="715" y="270" width="40" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="s-dns" value="dns / notif" style="shape=image;html=1;verticalLabelPosition=bottom;verticalAlign=top;imageAspect=0;aspect=fixed;image=https://cdn.jsdelivr.net/npm/lucide-static@0.469.0/icons/globe.svg;fontSize=11;fontColor=#94A3B8;fontFamily=Helvetica;labelBackgroundColor=none;opacity=55;" vertex="1" parent="1">
+          <mxGeometry x="855" y="270" width="40" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- Cellules -->
+        <mxCell id="cells-bg" value="" style="rounded=1;arcSize=12;fillColor=#FFFFFF;strokeColor=#E2E8F0;strokeWidth=1;" vertex="1" parent="1">
+          <mxGeometry x="80" y="420" width="900" height="150" as="geometry" />
+        </mxCell>
+        <mxCell id="cells-l" value="Cellules et plateformes" style="text;html=1;fontSize=11;fontColor=#94A3B8;fontStyle=1;fontFamily=Helvetica;align=left;" vertex="1" parent="1">
+          <mxGeometry x="100" y="428" width="220" height="18" as="geometry" />
+        </mxCell>
+
+        <mxCell id="csys" value="Cellule Systeme" style="shape=image;html=1;verticalLabelPosition=bottom;verticalAlign=top;imageAspect=0;aspect=fixed;image=https://cdn.jsdelivr.net/npm/lucide-static@0.469.0/icons/server-cog.svg;fontSize=12;fontColor=#15803D;fontStyle=1;fontFamily=Helvetica;labelBackgroundColor=none;" vertex="1" parent="1">
+          <mxGeometry x="160" y="465" width="56" height="56" as="geometry" />
+        </mxCell>
+        <mxCell id="cnet" value="Reseau" style="shape=image;html=1;verticalLabelPosition=bottom;verticalAlign=top;imageAspect=0;aspect=fixed;image=https://cdn.jsdelivr.net/npm/lucide-static@0.469.0/icons/network.svg;fontSize=12;fontColor=#94A3B8;fontFamily=Helvetica;labelBackgroundColor=none;opacity=65;" vertex="1" parent="1">
+          <mxGeometry x="330" y="475" width="44" height="44" as="geometry" />
+        </mxCell>
+        <mxCell id="csto" value="Stockage" style="shape=image;html=1;verticalLabelPosition=bottom;verticalAlign=top;imageAspect=0;aspect=fixed;image=https://cdn.jsdelivr.net/npm/lucide-static@0.469.0/icons/hard-drive.svg;fontSize=12;fontColor=#94A3B8;fontFamily=Helvetica;labelBackgroundColor=none;opacity=65;" vertex="1" parent="1">
+          <mxGeometry x="470" y="475" width="44" height="44" as="geometry" />
+        </mxCell>
+        <mxCell id="cmon" value="Monitoring" style="shape=image;html=1;verticalLabelPosition=bottom;verticalAlign=top;imageAspect=0;aspect=fixed;image=https://cdn.jsdelivr.net/npm/lucide-static@0.469.0/icons/activity.svg;fontSize=12;fontColor=#94A3B8;fontFamily=Helvetica;labelBackgroundColor=none;opacity=65;" vertex="1" parent="1">
+          <mxGeometry x="610" y="475" width="44" height="44" as="geometry" />
+        </mxCell>
+        <mxCell id="iaas" value="IaaS" style="shape=image;html=1;verticalLabelPosition=bottom;verticalAlign=top;imageAspect=0;aspect=fixed;image=https://cdn.jsdelivr.net/npm/lucide-static@0.469.0/icons/cloud.svg;fontSize=12;fontColor=#1D4ED8;fontStyle=1;fontFamily=Helvetica;labelBackgroundColor=none;" vertex="1" parent="1">
+          <mxGeometry x="750" y="475" width="44" height="44" as="geometry" />
+        </mxCell>
+        <mxCell id="paas" value="PaaS" style="shape=image;html=1;verticalLabelPosition=bottom;verticalAlign=top;imageAspect=0;aspect=fixed;image=https://cdn.jsdelivr.net/npm/lucide-static@0.469.0/icons/layers.svg;fontSize=12;fontColor=#94A3B8;fontFamily=Helvetica;labelBackgroundColor=none;opacity=55;" vertex="1" parent="1">
+          <mxGeometry x="890" y="475" width="44" height="44" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e4" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#94A3B8;strokeWidth=1.5;endArrow=blockThin;endFill=1;" edge="1" parent="1" source="s-orch" target="iaas">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e5" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#16A34A;strokeWidth=2.5;endArrow=blockThin;endFill=1;" edge="1" parent="1" source="s-sys" target="csys">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e6" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#CBD5E1;strokeWidth=1.5;endArrow=blockThin;endFill=1;dashed=1;" edge="1" parent="1" source="s-net" target="cnet">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e7" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#CBD5E1;strokeWidth=1.5;endArrow=blockThin;endFill=1;dashed=1;" edge="1" parent="1" source="s-sto" target="csto">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Pool XCP-ng : pile Hyperviseur / OS / XAPI visible -->
+        <mxCell id="pool" value="" style="rounded=1;arcSize=12;fillColor=#FAFAF9;strokeColor=#D6D3D1;strokeWidth=1.5;" vertex="1" parent="1">
+          <mxGeometry x="80" y="620" width="700" height="340" as="geometry" />
+        </mxCell>
+        <mxCell id="pool-l" value="Pool XCP-ng  ·  3 hotes  ·  meme pile sur chacun" style="text;html=1;fontSize=12;fontStyle=1;fontColor=#57534E;fontFamily=Helvetica;align=left;" vertex="1" parent="1">
+          <mxGeometry x="100" y="628" width="420" height="20" as="geometry" />
+        </mxCell>
+
+        <!-- ===== EMILIA (master) - pile detaillee ===== -->
+        <mxCell id="emilia" value="" style="rounded=1;arcSize=8;fillColor=#FFFFFF;strokeColor=#EA580C;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="110" y="660" width="180" height="200" as="geometry" />
+        </mxCell>
+        <mxCell id="emilia-name" value="Emilia · master · .100" style="text;html=1;fontSize=11;fontStyle=1;fontColor=#C2410C;fontFamily=Helvetica;align=center;" vertex="1" parent="1">
+          <mxGeometry x="115" y="665" width="170" height="18" as="geometry" />
+        </mxCell>
+        <!-- domU -->
+        <mxCell id="em-domu" value="domU  ·  VM invitees" style="rounded=0;fillColor=#FEF3C7;strokeColor=#F59E0B;strokeWidth=1;fontSize=10;fontColor=#92400E;fontFamily=Helvetica;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="125" y="690" width="150" height="28" as="geometry" />
+        </mxCell>
+        <!-- dom0 = OS -->
+        <mxCell id="em-dom0" value="" style="rounded=0;fillColor=#DBEAFE;strokeColor=#3B82F6;strokeWidth=1;" vertex="1" parent="1">
+          <mxGeometry x="125" y="724" width="150" height="72" as="geometry" />
+        </mxCell>
+        <mxCell id="em-dom0-ico" value="" style="shape=image;html=1;imageAspect=0;aspect=fixed;image=https://cdn.jsdelivr.net/npm/lucide-static@0.469.0/icons/monitor.svg;" vertex="1" parent="1">
+          <mxGeometry x="135" y="736" width="22" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="em-dom0-t" value="dom0  ·  OS Linux&#xa;XAPI  (HTTPS :443)" style="text;html=1;fontSize=10;fontColor=#1E40AF;fontStyle=1;fontFamily=Helvetica;align=left;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="165" y="730" width="105" height="50" as="geometry" />
+        </mxCell>
+        <!-- Xen hypervisor -->
+        <mxCell id="em-xen" value="" style="rounded=0;fillColor=#DCFCE7;strokeColor=#16A34A;strokeWidth=1;" vertex="1" parent="1">
+          <mxGeometry x="125" y="802" width="150" height="44" as="geometry" />
+        </mxCell>
+        <mxCell id="em-xen-ico" value="" style="shape=image;html=1;imageAspect=0;aspect=fixed;image=https://cdn.jsdelivr.net/npm/lucide-static@0.469.0/icons/cpu.svg;" vertex="1" parent="1">
+          <mxGeometry x="135" y="812" width="22" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="em-xen-t" value="Xen  ·  Hyperviseur" style="text;html=1;fontSize=10;fontColor=#166534;fontStyle=1;fontFamily=Helvetica;align=left;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="165" y="808" width="105" height="32" as="geometry" />
+        </mxCell>
+
+        <!-- ===== JADE - pile compacte ===== -->
+        <mxCell id="jade" value="" style="rounded=1;arcSize=8;fillColor=#FFFFFF;strokeColor=#A8A29E;strokeWidth=1.5;" vertex="1" parent="1">
+          <mxGeometry x="320" y="680" width="150" height="180" as="geometry" />
+        </mxCell>
+        <mxCell id="jade-name" value="Jade · .101" style="text;html=1;fontSize=11;fontStyle=1;fontColor=#57534E;fontFamily=Helvetica;align=center;" vertex="1" parent="1">
+          <mxGeometry x="325" y="685" width="140" height="16" as="geometry" />
+        </mxCell>
+        <mxCell id="ja-domu" value="domU" style="rounded=0;fillColor=#FEF3C7;strokeColor=#F59E0B;fontSize=10;fontColor=#92400E;align=center;verticalAlign=middle;fontFamily=Helvetica;" vertex="1" parent="1">
+          <mxGeometry x="335" y="708" width="120" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="ja-dom0" value="dom0 · OS + XAPI" style="rounded=0;fillColor=#DBEAFE;strokeColor=#3B82F6;fontSize=10;fontColor=#1E40AF;align=center;verticalAlign=middle;fontFamily=Helvetica;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="335" y="738" width="120" height="48" as="geometry" />
+        </mxCell>
+        <mxCell id="ja-xen" value="Xen · Hyperviseur" style="rounded=0;fillColor=#DCFCE7;strokeColor=#16A34A;fontSize=10;fontColor=#166534;align=center;verticalAlign=middle;fontFamily=Helvetica;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="335" y="792" width="120" height="48" as="geometry" />
+        </mxCell>
+
+        <!-- ===== REM - pile compacte ===== -->
+        <mxCell id="rem" value="" style="rounded=1;arcSize=8;fillColor=#FFFFFF;strokeColor=#A8A29E;strokeWidth=1.5;" vertex="1" parent="1">
+          <mxGeometry x="500" y="680" width="150" height="180" as="geometry" />
+        </mxCell>
+        <mxCell id="rem-name" value="Rem · .102" style="text;html=1;fontSize=11;fontStyle=1;fontColor=#57534E;fontFamily=Helvetica;align=center;" vertex="1" parent="1">
+          <mxGeometry x="505" y="685" width="140" height="16" as="geometry" />
+        </mxCell>
+        <mxCell id="re-domu" value="domU" style="rounded=0;fillColor=#FEF3C7;strokeColor=#F59E0B;fontSize=10;fontColor=#92400E;align=center;verticalAlign=middle;fontFamily=Helvetica;" vertex="1" parent="1">
+          <mxGeometry x="515" y="708" width="120" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="re-dom0" value="dom0 · OS + XAPI" style="rounded=0;fillColor=#DBEAFE;strokeColor=#3B82F6;fontSize=10;fontColor=#1E40AF;align=center;verticalAlign=middle;fontFamily=Helvetica;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="515" y="738" width="120" height="48" as="geometry" />
+        </mxCell>
+        <mxCell id="re-xen" value="Xen · Hyperviseur" style="rounded=0;fillColor=#DCFCE7;strokeColor=#16A34A;fontSize=10;fontColor=#166534;align=center;verticalAlign=middle;fontFamily=Helvetica;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="515" y="792" width="120" height="48" as="geometry" />
+        </mxCell>
+
+        <mxCell id="cl1" style="endArrow=none;html=1;strokeColor=#D6D3D1;strokeWidth=2;" edge="1" parent="1" source="emilia" target="jade">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="cl2" style="endArrow=none;html=1;strokeColor=#D6D3D1;strokeWidth=2;" edge="1" parent="1" source="jade" target="rem">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Legende pile -->
+        <mxCell id="stack-leg" value="jaune = VM  ·  bleu = OS (dom0)  ·  vert = Hyperviseur Xen" style="text;html=1;fontSize=10;fontColor=#78716C;fontFamily=Helvetica;align=left;" vertex="1" parent="1">
+          <mxGeometry x="110" y="865" width="400" height="16" as="geometry" />
+        </mxCell>
+
+        <!-- Stockage partage sous les hotes -->
+        <mxCell id="xostor" value="" style="rounded=1;arcSize=10;fillColor=#F5F3FF;strokeColor=#A78BFA;strokeWidth=1.5;" vertex="1" parent="1">
+          <mxGeometry x="110" y="888" width="540" height="54" as="geometry" />
+        </mxCell>
+        <mxCell id="xostor-ico" value="" style="shape=image;html=1;imageAspect=0;aspect=fixed;image=https://cdn.jsdelivr.net/npm/lucide-static@0.469.0/icons/database.svg;" vertex="1" parent="1">
+          <mxGeometry x="130" y="898" width="28" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="xostor-l" value="Stockage partage XOSTOR / LINSTOR  (sous les 3 hotes, pas un 4e serveur)" style="text;html=1;fontSize=11;fontColor=#5B21B6;fontFamily=Helvetica;align=left;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="170" y="898" width="460" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="st1" style="endArrow=none;html=1;strokeColor=#DDD6FE;strokeWidth=1.5;dashed=1;exitX=0.5;exitY=1;entryX=0.2;entryY=0;" edge="1" parent="1" source="emilia" target="xostor">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="st2" style="endArrow=none;html=1;strokeColor=#DDD6FE;strokeWidth=1.5;dashed=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="jade" target="xostor">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="st3" style="endArrow=none;html=1;strokeColor=#DDD6FE;strokeWidth=1.5;dashed=1;exitX=0.5;exitY=1;entryX=0.8;entryY=0;" edge="1" parent="1" source="rem" target="xostor">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- HTTPS vise le couche XAPI (dom0) d Emilia -->
+        <mxCell id="xapi" value="HTTPS :443 → XAPI" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#16A34A;strokeWidth=2.5;endArrow=blockThin;endFill=1;fontSize=11;fontColor=#15803D;fontStyle=1;labelBackgroundColor=#FFFFFF;fontFamily=Helvetica;entryX=1;entryY=0.5;" edge="1" parent="1" source="csys" target="em-dom0">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e8" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#E2E8F0;strokeWidth=1;endArrow=open;dashed=1;" edge="1" parent="1" source="cnet" target="jade">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e9" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#E2E8F0;strokeWidth=1;endArrow=open;dashed=1;" edge="1" parent="1" source="csto" target="xostor">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e10" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#E2E8F0;strokeWidth=1;endArrow=open;dashed=1;" edge="1" parent="1" source="cmon" target="rem">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Ops -->
+        <mxCell id="ops" value="" style="rounded=1;arcSize=12;fillColor=#FFF1F2;strokeColor=#FECDD3;strokeWidth=1.5;" vertex="1" parent="1">
+          <mxGeometry x="820" y="620" width="260" height="340" as="geometry" />
+        </mxCell>
+        <mxCell id="ops-l" value="Exploitation - hors SDK" style="text;html=1;fontSize=12;fontStyle=1;fontColor=#BE123C;fontFamily=Helvetica;align=left;" vertex="1" parent="1">
+          <mxGeometry x="840" y="630" width="220" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="gcli" value="gandal-cli" style="shape=image;html=1;verticalLabelPosition=bottom;verticalAlign=top;imageAspect=0;aspect=fixed;image=https://cdn.jsdelivr.net/npm/lucide-static@0.469.0/icons/terminal.svg;fontSize=11;fontColor=#9F1239;fontStyle=1;fontFamily=Helvetica;labelBackgroundColor=none;" vertex="1" parent="1">
+          <mxGeometry x="860" y="680" width="44" height="44" as="geometry" />
+        </mxCell>
+        <mxCell id="gctl" value="gandal-ctl" style="shape=image;html=1;verticalLabelPosition=bottom;verticalAlign=top;imageAspect=0;aspect=fixed;image=https://cdn.jsdelivr.net/npm/lucide-static@0.469.0/icons/shield-check.svg;fontSize=11;fontColor=#9F1239;fontStyle=1;fontFamily=Helvetica;labelBackgroundColor=none;" vertex="1" parent="1">
+          <mxGeometry x="980" y="680" width="44" height="44" as="geometry" />
+        </mxCell>
+        <mxCell id="ops-note" value="HTTPS :443 → XAPI&#xa;(dans dom0 / OS)" style="text;html=1;fontSize=11;fontColor=#E11D48;fontStyle=1;fontFamily=Helvetica;align=center;" vertex="1" parent="1">
+          <mxGeometry x="840" y="800" width="220" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="ops-note2" value="xe / invariants R1-R4" style="text;html=1;fontSize=10;fontColor=#FB7185;fontFamily=Helvetica;align=center;" vertex="1" parent="1">
+          <mxGeometry x="840" y="850" width="220" height="16" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e11" value="HTTPS" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#FB7185;strokeWidth=2;endArrow=blockThin;endFill=1;fontSize=10;fontColor=#BE123C;fontStyle=1;labelBackgroundColor=#FFF1F2;exitX=0;exitY=0.5;entryX=1;entryY=0.5;" edge="1" parent="1" source="gcli" target="em-dom0">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e12" value="HTTPS" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#FB7185;strokeWidth=2;endArrow=blockThin;endFill=1;fontSize=10;fontColor=#BE123C;fontStyle=1;labelBackgroundColor=#FFF1F2;exitX=0;exitY=0.75;entryX=1;entryY=0.75;" edge="1" parent="1" source="gctl" target="em-dom0">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="leg" value="pile hote : Hyperviseur Xen + OS (dom0) + XAPI  ·  Lucide  ·  rouge = ops HTTPS" style="text;html=1;fontSize=11;fontColor=#64748B;fontFamily=Helvetica;align=left;" vertex="1" parent="1">
+          <mxGeometry x="80" y="980" width="720" height="20" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

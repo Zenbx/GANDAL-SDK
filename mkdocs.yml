@@ -1,0 +1,121 @@
+# Site de documentation du SDK GANDAL (apps externes et reference complete).
+site_name: GANDAL SDK
+site_description: Documentation du SDK Python pour les apps de la plateforme GANDAL
+site_url: https://zenbx.github.io/GANDAL-SDK/
+repo_url: https://github.com/Zenbx/GANDAL-SDK
+repo_name: Zenbx/GANDAL-SDK
+docs_dir: docs
+site_dir: site
+
+theme:
+  name: material
+  language: fr
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Mode sombre
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Mode clair
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.expand
+    - navigation.top
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+    - content.tabs.link
+    - toc.follow
+
+plugins:
+  - search:
+      lang: fr
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - tables
+  - toc:
+      permalink: true
+  - attr_list
+  - md_in_html
+
+nav:
+  - Accueil: index.md
+  - Guides:
+      - Demarrage: guide/demarrage.md
+      - Architecture: guide/architecture.md
+      - Identifiants: guide/identifiants.md
+      - Orchestration: guide/orchestration.md
+      - Garde IAM: guide/garde-iam.md
+      - Acces SSH: guide/acces-ssh.md
+      - Hyperviseur: guide/hyperviseur.md
+      - Erreurs et relances: guide/erreurs-et-relances.md
+      - Pagination et waiters: guide/pagination-et-waiters.md
+  - Recettes:
+      - Creer une VM: recettes/creer-une-vm.md
+      - Gerer les demandes: recettes/gerer-les-demandes.md
+      - Entrer dans une VM: recettes/entrer-dans-une-vm.md
+      - App machine et STS: recettes/app-machine-sts.md
+  - Reference:
+      - Client: reference/client.md
+      - Orchestration:
+          - Vue d'ensemble: reference/orchestration/index.md
+          - Auth: reference/orchestration/auth.md
+          - Health: reference/orchestration/health.md
+          - Projects: reference/orchestration/projects.md
+          - Invitations: reference/orchestration/invitations.md
+          - VMs: reference/orchestration/vms.md
+          - Storages: reference/orchestration/storages.md
+          - Networks: reference/orchestration/networks.md
+          - Packs: reference/orchestration/packs.md
+          - Requests: reference/orchestration/requests.md
+          - Shares: reference/orchestration/shares.md
+          - Profiles: reference/orchestration/profiles.md
+      - IAM:
+          - Vue d'ensemble: reference/iam/index.md
+          - A - OIDC: reference/iam/a-oidc.md
+          - B - Decisions: reference/iam/b-decisions.md
+          - C - Sujets: reference/iam/c-sujets.md
+          - D - Projets: reference/iam/d-projets.md
+          - E - Quotas: reference/iam/e-quotas.md
+          - F - Machines et politiques: reference/iam/f-machines.md
+          - G - Ressources et tags: reference/iam/g-ressources.md
+      - Hyperviseur: reference/hyperviseur.md
+      - Cellules stubs: reference/cellules-stubs.md
+      - GardeIam: reference/garde.md
+      - AccesSsh: reference/acces-ssh.md
+      - Erreurs: reference/erreurs.md
+      - Credentials: reference/credentials.md
+      - Waiters: reference/waiters.md
+      - Pagination: reference/pagination.md
+      - Retry: reference/retry.md
+      - Modeles orchestration: reference/modeles-orchestration.md
+      - Modeles IAM: reference/modeles-iam.md
+  - Projet:
+      - Conventions API: CONVENTIONS_API.md
+      - Publier une version: RELEASING.md
+      - Release 0.6.0: releases/v0.6.0.md
+      - Release 0.5.0: releases/v0.5.0.md
+      - Release 0.4.0: releases/v0.4.0.md
+      - Release 0.3.0: releases/v0.3.0.md

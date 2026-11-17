@@ -11,13 +11,28 @@ Il expose un client unique (`GandalClient`) qui parle :
 
 Le SDK n'est pas un serveur : il s'installe dans l'app cliente et appelle les services deja deployes.
 
-## Installation
+## Documentation
+
+Guide complet (MkDocs) : [docs/index.md](docs/index.md).
+
+```bash
+pip install -e ".[dev]"
+mkdocs serve    # site local avec navigation et recherche
+```
+
+Installation d'une version figee :
+
+```bash
+pip install "git+https://github.com/Zenbx/GANDAL-SDK.git@v0.6.0"
+```
+
+## Installation (developpement)
 
 ```bash
 pip install -e ".[dev]"
 ```
 
-Ou depuis le depot :
+Ou depuis le depot (branche courante) :
 
 ```bash
 pip install git+https://github.com/Zenbx/GANDAL-SDK.git
