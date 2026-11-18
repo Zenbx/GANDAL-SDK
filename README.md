@@ -1,82 +1,120 @@
 # GANDAL SDK
 
-SDK Python pour les **apps externes** de la plateforme GANDAL.
+SDK Python pour les **apps externes** de la plateforme GANDAL (version **0.6.0**).
 
 Il expose un client unique (`GandalClient`) qui parle :
 
-- a l'API d'orchestration (`/api/v1`) avec des **helpers typés** ;
-- aux cellules **IAM** (decision-service + OIDC) et **hyperviseur** (pool XCP-ng) ;
+- a l'API d'**orchestration** (`iaas-api`, helpers typés `/api/v1`) ;
+- a la cellule **IAM** (decision-service + OIDC) ;
+- a la cellule **hyperviseur** (pool XCP-ng) ;
 - aux autres cellules (reseau, stockage, DNS, notifications) au fur et a mesure
   qu'elles sont livrees (stubs pour l'instant).
 
-Le SDK n'est pas un serveur : il s'installe dans l'app cliente et appelle les services deja deployes.
+Le SDK n'est **pas** un serveur : vous l'installez dans votre application, qui
+appelle ensuite les services GANDAL deja deployes.
 
-## Documentation
+| Vous voulez… | Allez a |
+| --- | --- |
+| Utiliser le SDK dans une app | [Installer le SDK (utilisateur)](#installer-le-sdk-utilisateur) |
+| Contribuer / developper le depot | [Developper sur le SDK](#developper-sur-le-sdk) |
+| Lire la doc complete | [Documentation](#documentation) |
 
-Guide complet (MkDocs) : [docs/index.md](docs/index.md).
+---
+
+## Prerequisites
+
+- **Python 3.11 ou plus** (`python --version`)
+- **pip** (`python -m pip --version`)
+- Pour installer depuis Git : **Git** dans le `PATH` (`git --version`)
+- Pour appeler l'API : une instance **iaas-api** joignable (et optionnellement IAM / hyperviseur)
+
+Sous **Windows (PowerShell)**, mettez toujours les URL et extras entre guillemets :
+sans eux, `@v0.6.0` et `.[dev]` peuvent etre mal interpretes.
+
+---
+
+## Installer le SDK (utilisateur)
+
+Choisissez **une** des methodes. Puis passez a [Verifier l'installation](#verifier-linstallation).
+
+### Methode A - depuis le tag Git (recommandee)
+
+Necessite Git.
 
 ```bash
-pip install -e ".[dev]"
-mkdocs serve    # site local avec navigation et recherche
+python -m pip install "git+https://github.com/Zenbx/GANDAL-SDK.git@v0.6.0"
 ```
 
-Installation d'une version figee :
+PowerShell (identique, guillemets obligatoires) :
+
+```powershell
+python -m pip install "git+https://github.com/Zenbx/GANDAL-SDK.git@v0.6.0"
+```
+
+### Methode B - wheel de la release (sans Git)
+
+Utile si Git n'est pas installe, ou pour un CI minimal :
 
 ```bash
-pip install "git+https://github.com/Zenbx/GANDAL-SDK.git@v0.6.0"
+python -m pip install "https://github.com/Zenbx/GANDAL-SDK/releases/download/v0.6.0/gandal_sdk-0.6.0-py3-none-any.whl"
 ```
 
-## Installation (developpement)
+### Methode C - branche `main` (dernier code, non fige)
 
 ```bash
-pip install -e ".[dev]"
+python -m pip install "git+https://github.com/Zenbx/GANDAL-SDK.git"
 ```
 
-Ou depuis le depot (branche courante) :
+### Verifier l'installation
 
 ```bash
-pip install git+https://github.com/Zenbx/GANDAL-SDK.git
+python -c "import gandal_sdk; print(gandal_sdk.__version__)"
 ```
 
-## Usage rapide
+Attendu : `0.6.0` (ou la version du tag / de `main` installee).
+
+La commande CLI SSH est aussi disponible apres install :
+
+```bash
+gandal-ssh --help
+```
+
+---
+
+## Premier usage
+
+### Client minimal (login)
 
 ```python
 from gandal_sdk import GandalClient
 from gandal_sdk.orchestration import VMCreateRequestIn, PowerAction
 
-client = GandalClient(base_url="http://localhost:8000")
-client.login("alice@iaas.cm", "alice123")
+with GandalClient("http://localhost:8000") as client:
+    client.login("alice@iaas.cm", "alice123")
+    print(client.me().email)
+    print(client.orchestration.health().status)
 
-print(client.orchestration.health().status)
+    projects = client.orchestration.projects.list()
+    project_id = projects.items[0].id
 
-projects = client.orchestration.projects.list()
-project_id = projects.items[0].id
+    vms = client.orchestration.vms.list(project_id)
+    if vms.items:
+        print(vms.items[0].name, vms.total_items)
 
-vms = client.orchestration.vms.list(project_id)
-print(vms.items[0].name, vms.total_items)
-
-# Demande de creation (passe par un administrateur)
-client.orchestration.vms.request_create(
-    project_id,
-    VMCreateRequestIn(name="web-01", pack_id="pack-standard"),
-)
-
-# Action directe d'alimentation
-client.orchestration.vms.power(project_id, vms.items[0].id, PowerAction.START)
-
-# Suppression en deux temps (confirm=True enchaine apercu + confirmation)
-client.orchestration.vms.delete(project_id, vms.items[0].id, confirm=True)
+    # Creation = demande admin (pas un create direct)
+    client.orchestration.vms.request_create(
+        project_id,
+        VMCreateRequestIn(name="web-01", pack_id="pack-standard"),
+    )
 ```
 
-## Identifiants, pagination et relances
+### Identifiants hors du code (`from_env`)
 
-**Identifiants.** `GandalClient.from_env()` trouve l'endpoint et le jeton sans
-les ecrire dans le code, dans cet ordre : arguments, variables
-`GANDAL_ENDPOINT` / `GANDAL_TOKEN`, puis profil de `~/.gandal/credentials`
-(`GANDAL_PROFILE` pour en choisir un autre que `default`).
+Ordre de resolution : arguments → variables d'environnement → fichier profil.
 
 ```ini
-# ~/.gandal/credentials  (chmod 600)
+# ~/.gandal/credentials   (Linux/macOS : chmod 600)
+# Windows : %USERPROFILE%\.gandal\credentials
 [default]
 endpoint = http://localhost:8000
 token = eyJhbGciOi...
@@ -87,47 +125,35 @@ iam_token = ...
 iam_ca = ~/.gandal/gandal-ca.crt
 ```
 
+Variables equivalentes : `GANDAL_ENDPOINT`, `GANDAL_TOKEN`, `GANDAL_PROFILE`,
+`GANDAL_HYPERVISOR_*`, `GANDAL_IAM_*` (detail dans la [doc Identifiants](docs/guide/identifiants.md)).
+
 ```python
-client = GandalClient.from_env()              # profil default
+from gandal_sdk import GandalClient
+
+client = GandalClient.from_env()
 admin = GandalClient.from_env(profile="admin")
 ```
 
-**Pagination.** `paginate` parcourt toutes les pages de n'importe quelle methode
-de liste, en chargeant les pages au fur et a mesure :
+### Pagination, waiters, relances
 
 ```python
-from gandal_sdk import paginate
+from gandal_sdk import paginate, RetryPolicy, WaiterFailure, WaiterTimeout
 
 for vm in paginate(client.orchestration.vms.list, project_id, state="running"):
     print(vm.name)
-```
-
-**Relances.** Les `429`, et pour les requetes rejouables les `503` et erreurs
-reseau, sont relances automatiquement (3 tentatives, attente exponentielle,
-`Retry-After` respecte). Un `POST` n'est jamais rejoue sur `503` sans cle
-d'idempotence, pour ne pas creer de doublon. Reglage :
-
-```python
-from gandal_sdk import RetryPolicy
 
 client = GandalClient("http://localhost:8000", retry=RetryPolicy(max_attempts=5))
-client = GandalClient("http://localhost:8000", retry=RetryPolicy(max_attempts=1))  # aucune relance
-```
 
-## Attendre qu'une ressource soit prete
-
-Les actions sur l'infrastructure prennent du temps. Les waiters interrogent la
-ressource jusqu'a l'etat voulu, et s'arretent tout de suite sur un etat dont
-elle ne sortira pas seule (`error`, ou `deleting` quand on attend `running`) :
-
-```python
-from gandal_sdk import WaiterFailure, WaiterTimeout
-
-request = client.orchestration.vms.request_create(project_id, VMCreateRequestIn(name="web-01", pack_id="pack-standard"))
+request = client.orchestration.vms.request_create(
+    project_id, VMCreateRequestIn(name="web-01", pack_id="pack-standard")
+)
 try:
     accepted = client.orchestration.requests.wait_until_accepted(request.id)
-    vm = client.orchestration.vms.wait_until_running(project_id, accepted.target_resource_id)
-except WaiterFailure as err:      # refusee, annulee, VM en erreur...
+    vm = client.orchestration.vms.wait_until_running(
+        project_id, accepted.target_resource_id
+    )
+except WaiterFailure as err:
     print(err, err.last_value)
 except WaiterTimeout:
     ...
@@ -140,29 +166,14 @@ except WaiterTimeout:
 | `storages.wait_until_deleted` | `404` | - | 5 s x 60 |
 | `requests.wait_until_accepted` | `accepted` | `refused`, `cancelled` | 15 s x 240 |
 
-`unknown` n'est jamais traite comme un succes. Chaque waiter accepte `delay=`
-et `max_attempts=`.
+### Cellules IAM et hyperviseur (apercu)
 
-## Cellule IAM : decisions, sujets, projets, quotas
-
-`client.iam` parle au service de decision (familles B-G) et aux endpoints OIDC
-(famille A) du contrat `openapi/gandal-iam.json` (v1.7.0). Sans endpoint
-configure, chaque appel leve `CellUnavailable`. Les erreurs IAM sont en
-`application/problem+json` (RFC 9457) et deviennent des `GandalApiError`.
+Sans endpoint configure, `client.iam` / `client.hypervisor` levent `CellUnavailable`.
 
 ```python
-from gandal_sdk import GandalClient
-from gandal_sdk.cells.iam import Capacite, DemandeDecision, DemandeRessource
+# IAM : GANDAL_IAM_ENDPOINT / TOKEN / CA, ou cell_urls / cell_tokens / cell_verify
+from gandal_sdk.cells.iam import DemandeDecision, DemandeRessource
 
-client = GandalClient(
-    "http://localhost:8000",
-    cell_urls={"iam": "https://10.30.0.30:8081/v1"},
-    cell_tokens={"iam": "<jeton OIDC ou cle machine>"},
-    cell_verify={"iam": "/chemin/vers/gandal-ca.crt"},
-)
-# ou GandalClient.from_env() avec GANDAL_IAM_ENDPOINT / GANDAL_IAM_TOKEN / GANDAL_IAM_CA
-
-me = client.iam.get_me()
 decision = client.iam.decide(
     DemandeDecision(
         action="vm:create",
@@ -170,54 +181,98 @@ decision = client.iam.decide(
         contexte={"ram_gb": 2},
     )
 )
-assert decision.decision.value == "permit"
 
-reservation = client.iam.reserve_quota(ressources={"vm_count": 1}, projet="prj_01")
-# ... creer la ressource ...
-client.iam.commit_reservation(reservation.id, ressource_id="vm-9")
-```
-
-Les ecritures envoient une `Idempotency-Key` (generee si absente), sauf
-`create_access_key` et `assume_role` (le secret ne doit pas etre rememorise).
-
-Synchroniser l'instantane depuis le depot iam :
-
-```bash
-python scripts/sync_openapi.py --service gandal-iam --yaml ../iam/iam/contracts/openapi-iam.yaml
-```
-
-## Cellule hyperviseur : les VM du pool XCP-ng
-
-`client.hypervisor` pilote les VM du pool via le service
-[gandal-hypervisor](https://github.com/BalaAndegue/gandal-hypervisor). Sans endpoint configure, chaque appel
-leve `CellUnavailable`.
-
-```python
-from gandal_sdk import GandalClient
+# Hyperviseur : GANDAL_HYPERVISOR_ENDPOINT / TOKEN
 from gandal_sdk.cells.hypervisor import PowerAction, VmSpec
 
-client = GandalClient(
-    "http://localhost:8000",
-    cell_urls={"hypervisor": "http://127.0.0.1:8770"},
-    cell_tokens={"hypervisor": "<jeton de la cellule>"},
+created = client.hypervisor.create_vm(
+    VmSpec(name="sdk-it-web", ram_gb=1, vcpu=1, vram_gb=0, ssd_gb=10)
 )
-# ou GandalClient.from_env() avec GANDAL_HYPERVISOR_ENDPOINT / GANDAL_HYPERVISOR_TOKEN
-
-created = client.hypervisor.create_vm(VmSpec(name="sdk-it-web", ram_gb=1, vcpu=1, vram_gb=0, ssd_gb=10))
 client.hypervisor.wait_for_operation(created.operation)
-vm = client.hypervisor.wait_until_running(created.vm)
-print(vm.ip_address, vm.host)
-
-client.hypervisor.power(vm, PowerAction.STOP)
-client.hypervisor.wait_until_stopped(vm)
-client.hypervisor.delete_vm(vm)
-client.hypervisor.wait_until_deleted(vm)
 ```
 
-Les ecritures renvoient une operation (`wait_for_operation` leve `WaiterFailure`
-avec le code et le detail XAPI si elle echoue). Tests de bout en bout contre la
-cellule, faux pool par defaut, pool reel avec `GANDAL_HV_FAKE=0` (voir le README
-de la cellule) :
+Guides detailles : [Garde IAM](docs/guide/garde-iam.md), [Acces SSH](docs/guide/acces-ssh.md),
+[Hyperviseur](docs/guide/hyperviseur.md), recettes sous [docs/recettes/](docs/recettes/).
+
+---
+
+## Developper sur le SDK
+
+Pour modifier le code, lancer les tests, regenerer la doc ou synchroniser OpenAPI.
+
+### 1. Cloner et environnement
+
+```bash
+git clone https://github.com/Zenbx/GANDAL-SDK.git
+cd GANDAL-SDK
+python -m venv .venv
+```
+
+Activer le venv :
+
+```bash
+# Linux / macOS
+source .venv/bin/activate
+
+# Windows PowerShell
+.\.venv\Scripts\Activate.ps1
+```
+
+### 2. Installer en editable (+ outils de dev)
+
+```bash
+python -m pip install -U pip
+python -m pip install -e ".[dev]"
+```
+
+L'extra `dev` tire : pytest, respx, ruff, **mkdocs** / mkdocs-material.
+
+Verifier :
+
+```bash
+python -c "import gandal_sdk; print(gandal_sdk.__version__, gandal_sdk.__file__)"
+ruff check src tests scripts
+pytest -q
+```
+
+### 3. Lire / regenerer la documentation
+
+```bash
+mkdocs serve
+```
+
+Ouvrir l'URL affichee (souvent `http://127.0.0.1:8000`).
+
+Build strict (CI locale) :
+
+```bash
+mkdocs build --strict
+```
+
+La reference methode-par-methode peut etre regeneree depuis le code :
+
+```bash
+python scripts/gen_reference_docs.py
+```
+
+### 4. Tests
+
+```bash
+# Unitaires (pas de reseau externe)
+pytest -q
+
+# Style
+ruff check src tests scripts
+
+# Integration contre une vraie iaas-api (clone voisin + deps API)
+# Linux / macOS / Git Bash :
+scripts/run_integration.sh ../iaas-api ../iaas-api/.venv/bin/python
+```
+
+Le script d'integration applique les migrations **Alembic** puis demarre iaas-api
+sur une base SQLite neuve, lance `tests/integration`, puis arrete le serveur.
+
+Integration hyperviseur :
 
 ```bash
 scripts/run_hypervisor_integration.sh ../gandal-hypervisor
@@ -226,61 +281,63 @@ scripts/run_hypervisor_integration.sh ../gandal-hypervisor
 # .\scripts\run_hypervisor_integration.ps1 ..\gandal-hypervisor
 ```
 
-## Helpers typés disponibles (orchestration)
+### 5. Contrat OpenAPI
+
+Quand iaas-api (ou une cellule) change :
+
+```bash
+python scripts/sync_openapi.py --app-dir ../iaas-api
+# IAM :
+# python scripts/sync_openapi.py --service gandal-iam --yaml ../iam/iam/contracts/openapi-iam.yaml
+pytest tests/test_contract_openapi.py
+```
+
+Conventions communes : [docs/CONVENTIONS_API.md](docs/CONVENTIONS_API.md).
+Publication d'une version : [docs/RELEASING.md](docs/RELEASING.md).
+
+---
+
+## Surface disponible
+
+### Orchestration (`client.orchestration`)
 
 | Acces | Couverture |
 | --- | --- |
-| `client.orchestration.auth` | login, me, update_me, change_password, delete_me |
-| `client.orchestration.projects` | CRUD, membres, invitations de projet, suppression confirmee |
-| `client.orchestration.invitations` | liste / accept / refuse / cancel |
-| `client.orchestration.vms` | liste, get, demandes create/update, power, console, share, delete |
-| `client.orchestration.storages` | liste, get, demandes create/update, share, delete |
-| `client.orchestration.networks` | CRUD, attach/detach VM, delete |
-| `client.orchestration.packs` | catalogue + admin create/update/delete |
-| `client.orchestration.requests` | liste, get, cancel, accept, refuse |
-| `client.orchestration.shares` | liste, get, list_for_project, revoke |
-| `client.orchestration.profiles` | rights, profiles admin |
+| `auth` | login, me, update_me, change_password, delete_me |
+| `projects` | CRUD, membres, invitations, suppression confirmee |
+| `invitations` | liste / accept / refuse / cancel |
+| `vms` | liste, get, demandes create/update, power, console, share, delete |
+| `storages` | liste, get, demandes create/update, share, delete |
+| `networks` | CRUD, attach/detach VM, delete |
+| `packs` | catalogue + admin create/update/delete |
+| `requests` | liste, get, cancel, accept, refuse, waiter |
+| `shares` | liste, get, list_for_project, revoke |
+| `profiles` | rights, profiles admin |
 
-Les methodes generiques `get/post/put/patch/delete` restent disponibles en echappatoire.
+Methodes generiques `get` / `post` / `put` / `patch` / `delete` en echappatoire.
 
-## Feuille de route des cellules
+### Feuille de route des cellules
 
 | Module | Statut |
 | --- | --- |
 | `client.orchestration` | Disponible (helpers typés `/api/v1`) |
-| `client.iam` | Disponible ; contrat 1.7.0 (70 routes, familles A-G) |
-| `client.hypervisor` | Disponible ; valide contre faux pool et pool XCP-ng reel (bac a sable) |
-| `client.network` | Stub - en attente de l'API cellule |
-| `client.storage` | Stub - en attente de l'API cellule |
-| `client.dns` | Stub - en attente de l'API cellule |
-| `client.notifications` | Stub - en attente de l'API cellule |
+| `client.iam` | Disponible ; contrat 1.7.0 (familles A-G) |
+| `client.hypervisor` | Disponible ; valide faux pool et pool XCP-ng (bac a sable) |
+| `client.network` | Stub |
+| `client.storage` | Stub |
+| `client.dns` | Stub |
+| `client.notifications` | Stub |
 
-## Developpement
+---
 
-```bash
-pytest                                                    # unitaires, sans reseau externe
-scripts/run_integration.sh ../iaas-api ../iaas-api/.venv/bin/python   # contre une vraie iaas-api
-```
+## Documentation
 
-Le second demarre iaas-api sur une base neuve (comptes de demonstration),
-lance `tests/integration`, puis l'arrete.
+- Site MkDocs : `mkdocs serve` puis [docs/index.md](docs/index.md)
+- Guides : [docs/guide/](docs/guide/)
+- Recettes : [docs/recettes/](docs/recettes/)
+- Reference : [docs/reference/](docs/reference/)
+- Journal : [CHANGELOG.md](CHANGELOG.md)
+- Releases : [docs/releases/](docs/releases/)
 
-Historique des versions : [CHANGELOG.md](CHANGELOG.md). Publier une version :
-[docs/RELEASING.md](docs/RELEASING.md).
-
-## Contrat avec l'API
-
-Les regles communes aux services (erreurs, relances, idempotence, operations
-longues, identifiants) sont dans [docs/CONVENTIONS_API.md](docs/CONVENTIONS_API.md).
-
-`openapi/iaas-api.json` est un instantane de l'OpenAPI publiee par `iaas-api`.
-`tests/test_contract_openapi.py` verifie que les modeles du SDK lisent et
-envoient ce que l'API attend, et que chaque route publiee a son helper.
-La CI compare chaque jour l'instantane a la branche `main` d'`iaas-api`.
-
-Quand l'API change :
-
-```bash
-python scripts/sync_openapi.py --app-dir ../iaas-api   # ou --url http://localhost:8000
-pytest tests/test_contract_openapi.py
-```
+Depot : https://github.com/Zenbx/GANDAL-SDK  
+Release courante : https://github.com/Zenbx/GANDAL-SDK/releases/tag/v0.6.0
