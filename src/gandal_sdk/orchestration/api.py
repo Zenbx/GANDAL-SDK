@@ -16,6 +16,7 @@ from gandal_sdk.orchestration.projects import ProjectsApi
 from gandal_sdk.orchestration.requests import RequestsApi
 from gandal_sdk.orchestration.shares import SharesApi
 from gandal_sdk.orchestration.storages import StoragesApi
+from gandal_sdk.orchestration.users import UsersApi
 from gandal_sdk.orchestration.vms import VmsApi
 
 
@@ -36,6 +37,7 @@ class OrchestrationApi:
         self.requests = RequestsApi(transport)
         self.shares = SharesApi(transport)
         self.profiles = ProfilesApi(transport)
+        self.users = UsersApi(transport)
 
     def health(self) -> HealthOut:
         """Retourne l'etat de sante de l'API d'orchestration."""

@@ -120,6 +120,35 @@ def test_vms_request_create_and_power() -> None:
 
 
 @respx.mock
+def test_vms_create_direct() -> None:
+    """create (POST .../vms/direct) parse RequestOut."""
+    respx.post("http://example.test/api/v1/projects/prj-1/vms/direct").respond(
+        201,
+        json={
+            "id": "req-direct",
+            "project_id": "prj-1",
+            "author_id": "u1",
+            "kind": "vm_create",
+            "status": "accepted",
+            "payload": {"name": "web-01"},
+            "target_resource_type": "vm",
+            "target_resource_id": "vm-1",
+            "admin_note": None,
+            "created_at": "2026-01-01T00:00:00Z",
+            "updated_at": "2026-01-01T00:00:00Z",
+            "decided_at": "2026-01-01T00:00:00Z",
+        },
+    )
+    with GandalClient("http://example.test") as client:
+        req = client.orchestration.vms.create(
+            "prj-1",
+            VMCreateRequestIn(name="web-01", pack_id="pack-standard"),
+        )
+        assert req.id == "req-direct"
+        assert req.target_resource_id == "vm-1"
+
+
+@respx.mock
 def test_vms_delete_preview_then_confirm() -> None:
     """delete sans confirm renvoie l'apercu ; confirm=True enchaine."""
     import httpx

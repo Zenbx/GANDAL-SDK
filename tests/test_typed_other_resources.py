@@ -131,6 +131,43 @@ def test_profiles_list_rights_and_create() -> None:
 
 
 @respx.mock
+def test_users_list_and_overview() -> None:
+    """list et overview admin parse IdentityOut / UserOverviewOut."""
+    respx.get("http://example.test/api/v1/admin/users").respond(
+        200,
+        json={
+            "items": [
+                {
+                    "user_id": "u1",
+                    "email": "a@iaas.cm",
+                    "first_name": "A",
+                    "last_name": "B",
+                    "role": "user",
+                }
+            ],
+            "page": 1,
+            "page_size": 20,
+            "total_items": 1,
+            "total_pages": 1,
+        },
+    )
+    respx.get("http://example.test/api/v1/admin/users/u1/overview").respond(
+        200,
+        json={
+            "projects": [],
+            "invitations": [],
+            "requests": [],
+            "shares": [],
+        },
+    )
+    with GandalClient("http://example.test") as client:
+        page = client.orchestration.users.list()
+        assert page.items[0].user_id == "u1"
+        overview = client.orchestration.users.overview("u1")
+        assert overview.projects == []
+
+
+@respx.mock
 def test_auth_update_me_refreshes_token() -> None:
     """update_me stocke le nouveau Bearer."""
     respx.patch("http://example.test/api/v1/auth/me").respond(

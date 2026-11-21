@@ -323,13 +323,14 @@ Publication d'une version : [docs/RELEASING.md](docs/RELEASING.md).
 | `auth` | login, me, update_me, change_password, delete_me |
 | `projects` | CRUD, membres, invitations, suppression confirmee |
 | `invitations` | liste / accept / refuse / cancel |
-| `vms` | liste, get, demandes create/update, power, console, share, delete |
+| `vms` | liste, get, create direct, demandes create/update, power, console, share, delete |
 | `storages` | liste, get, demandes create/update, share, delete |
 | `networks` | CRUD, attach/detach VM, delete |
 | `packs` | catalogue + admin create/update/delete |
 | `requests` | liste, get, cancel, accept, refuse, waiter |
 | `shares` | liste, get, list_for_project, revoke |
 | `profiles` | rights, profiles admin |
+| `users` | liste admin, overview operationnel |
 
 Methodes generiques `get` / `post` / `put` / `patch` / `delete` en echappatoire.
 

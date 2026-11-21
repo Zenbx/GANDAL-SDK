@@ -385,13 +385,36 @@ class RegisterIn(BaseModel):
     last_name: str
 
 
+class UserProjectOverviewOut(BaseModel):
+    """Projet visible dans la vue operationnelle d'un compte (admin)."""
+
+    id: str
+    name: str
+    owner_id: str
+    role: MembershipRole
+    rights: list[str]
+    created_at: datetime
+    vms: list[VMOut]
+    networks: list[NetworkOut]
+
+
+class UserOverviewOut(BaseModel):
+    """Donnees operationnelles d'un compte (GET /admin/users/{id}/overview)."""
+
+    projects: list[UserProjectOverviewOut]
+    invitations: list[InvitationOut]
+    requests: list[RequestOut]
+    shares: list[ShareOut]
+
+
 class ReadinessOut(BaseModel):
     """Reponse de GET /ready.
 
     A ne pas confondre avec `/api/v1/health` : `health` dit que le processus
     repond, `ready` qu'il peut servir — base de donnees joignable, dependances
     pretes. C'est `ready` que vise une sonde d'orchestrateur avant d'envoyer du
-    trafic.
+    trafic. `decision` expose le mode du service de decision (off|fake|gandal).
     """
 
     status: str
+    decision: str

@@ -82,6 +82,23 @@ class VmsApi:
         )
         return RequestOut.model_validate(data)
 
+    def create(
+        self,
+        project_id: str,
+        body: VMCreateRequestIn,
+    ) -> RequestOut:
+        """Cree une VM tout de suite si le quota le permet (POST .../vms/direct).
+
+        Chemin quotidien quand les quotas sont deja poses. Pour une exception
+        (hors profil, releve de quota), preferer `request_create`.
+        """
+        data = self._http.request(
+            "POST",
+            f"/api/v1/projects/{project_id}/vms/direct",
+            json=body.model_dump(exclude_none=True),
+        )
+        return RequestOut.model_validate(data)
+
     def request_update(
         self,
         project_id: str,
