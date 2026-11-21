@@ -1,6 +1,6 @@
 # GANDAL SDK
 
-SDK Python pour les **apps externes** de la plateforme GANDAL (version **0.6.0**).
+SDK Python pour les **apps externes** de la plateforme GANDAL (version **0.7.0**).
 
 Il expose un client unique (`GandalClient`) qui parle :
 
@@ -30,7 +30,7 @@ appelle ensuite les services GANDAL deja deployes.
 - Pour appeler l'API : une instance **iaas-api** joignable (et optionnellement IAM / hyperviseur)
 
 Sous **Windows (PowerShell)**, mettez toujours les URL et extras entre guillemets :
-sans eux, `@v0.6.0` et `.[dev]` peuvent etre mal interpretes.
+sans eux, `@v0.7.0` et `.[dev]` peuvent etre mal interpretes.
 
 ---
 
@@ -43,13 +43,13 @@ Choisissez **une** des methodes. Puis passez a [Verifier l'installation](#verifi
 Necessite Git.
 
 ```bash
-python -m pip install "git+https://github.com/Zenbx/GANDAL-SDK.git@v0.6.0"
+python -m pip install "git+https://github.com/Zenbx/GANDAL-SDK.git@v0.7.0"
 ```
 
 PowerShell (identique, guillemets obligatoires) :
 
 ```powershell
-python -m pip install "git+https://github.com/Zenbx/GANDAL-SDK.git@v0.6.0"
+python -m pip install "git+https://github.com/Zenbx/GANDAL-SDK.git@v0.7.0"
 ```
 
 ### Methode B - wheel de la release (sans Git)
@@ -57,7 +57,7 @@ python -m pip install "git+https://github.com/Zenbx/GANDAL-SDK.git@v0.6.0"
 Utile si Git n'est pas installe, ou pour un CI minimal :
 
 ```bash
-python -m pip install "https://github.com/Zenbx/GANDAL-SDK/releases/download/v0.6.0/gandal_sdk-0.6.0-py3-none-any.whl"
+python -m pip install "https://github.com/Zenbx/GANDAL-SDK/releases/download/v0.7.0/gandal_sdk-0.7.0-py3-none-any.whl"
 ```
 
 ### Methode C - branche `main` (dernier code, non fige)
@@ -72,7 +72,7 @@ python -m pip install "git+https://github.com/Zenbx/GANDAL-SDK.git"
 python -c "import gandal_sdk; print(gandal_sdk.__version__)"
 ```
 
-Attendu : `0.6.0` (ou la version du tag / de `main` installee).
+Attendu : `0.7.0` (ou la version du tag / de `main` installee).
 
 La commande CLI SSH est aussi disponible apres install :
 
@@ -357,4 +357,4 @@ Methodes generiques `get` / `post` / `put` / `patch` / `delete` en echappatoire.
 - Releases : [docs/releases/](docs/releases/)
 
 Depot : https://github.com/Zenbx/GANDAL-SDK  
-Release courante : https://github.com/Zenbx/GANDAL-SDK/releases/tag/v0.6.0
+Release courante : https://github.com/Zenbx/GANDAL-SDK/releases/tag/v0.7.0

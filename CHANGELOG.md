@@ -4,15 +4,19 @@ Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/),
 versions selon [SemVer](https://semver.org/lang/fr/). Le détail de chaque
 version, migration comprise, est dans docs/releases/.
 
-## [Non publié]
+## [0.7.0] - 2026-11-21
 
-### Ajouté
+Notes completes : [docs/releases/v0.7.0.md](docs/releases/v0.7.0.md).
+
+### Ajoute
 
 - `client.network` branche sur l'agent reseau (`agent_reseau`) : enveloppe
   d'execution, `run` / `health` / `get_execution`, helpers `xcpng.networks` et
   `vm-networks`, raccourcis `user_vms` / `vm_acl` / `flows` / `xcpng`.
 - Credentials `GANDAL_NETWORK_ENDPOINT` / `GANDAL_NETWORK_TOKEN` et
   `set_network_token`.
+- Documentation MkDocs (guides, reference, recettes) et README clarifie
+  (install utilisateur vs developpement).
 
 ### Modifie (incompatible)
 
@@ -155,6 +159,7 @@ Notes complètes : [docs/releases/v0.3.0.md](docs/releases/v0.3.0.md).
 - Squelette du SDK : `GandalClient`, transport HTTP, `GandalApiError`, stubs des
   cellules IAM, hyperviseur, réseau, stockage, DNS et notifications.
 
+[0.7.0]: https://github.com/Zenbx/GANDAL-SDK/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/Zenbx/GANDAL-SDK/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/Zenbx/GANDAL-SDK/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/Zenbx/GANDAL-SDK/compare/v0.3.0...v0.4.0

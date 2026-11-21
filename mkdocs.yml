@@ -117,6 +117,7 @@ nav:
   - Projet:
       - Conventions API: CONVENTIONS_API.md
       - Publier une version: RELEASING.md
+      - Release 0.7.0: releases/v0.7.0.md
       - Release 0.6.0: releases/v0.6.0.md
       - Release 0.5.0: releases/v0.5.0.md
       - Release 0.4.0: releases/v0.4.0.md

@@ -1,6 +1,6 @@
 # GANDAL SDK
 
-SDK Python **0.6.0** pour les applications qui consomment la plateforme GANDAL.
+SDK Python **0.7.0** pour les applications qui consomment la plateforme GANDAL.
 
 Il expose un client unique (`GandalClient`) qui parle :
 
@@ -30,9 +30,9 @@ Puis ouvrir l'URL affichee (souvent `http://127.0.0.1:8000`).
 ## Installation du paquet
 
 ```bash
-pip install "git+https://github.com/Zenbx/GANDAL-SDK.git@v0.6.0"
+pip install "git+https://github.com/Zenbx/GANDAL-SDK.git@v0.7.0"
 ```
 
 ## Versions
 
-Notes de release : [v0.6.0](releases/v0.6.0.md). Journal : voir `CHANGELOG.md` a la racine du depot.
+Notes de release : [v0.7.0](releases/v0.7.0.md). Journal : voir `CHANGELOG.md` a la racine du depot.

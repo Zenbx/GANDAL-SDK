@@ -11,7 +11,7 @@
 === "Depuis le tag"
 
     ```bash
-    pip install "git+https://github.com/Zenbx/GANDAL-SDK.git@v0.6.0"
+    pip install "git+https://github.com/Zenbx/GANDAL-SDK.git@v0.7.0"
     ```
 
 === "Editable (contribution)"
