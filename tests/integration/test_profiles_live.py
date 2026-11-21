@@ -13,11 +13,11 @@ def test_rights_catalog_is_seeded(alice: GandalClient) -> None:
 
 
 def test_profile_lifecycle(admin: GandalClient, unique_name: str) -> None:
-    """Creation, lecture paginee, modification, suppression ; id entier de bout en bout."""
+    """Creation, lecture paginee, modification, suppression ; id UUID de bout en bout."""
     profiles = admin.orchestration.profiles
     created = profiles.create(ProfileCreateIn(name=unique_name, rights=["vm.view"]))
     try:
-        assert isinstance(created.id, int)
+        assert isinstance(created.id, str) and created.id
         listed = {p.id: p for p in paginate(profiles.list, page_size=1)}
         assert listed[created.id].rights == ["vm.view"]
 
@@ -58,7 +58,8 @@ def test_page_size_above_limit_reports_field(admin: GandalClient) -> None:
     with pytest.raises(GandalApiError) as caught:
         admin.orchestration.profiles.list(page_size=500)
     assert caught.value.code == "validation_error"
-    assert caught.value.details[0]["loc"] == ["query", "page_size"]
+    # iaas-api normalise en {field, message, type} (plus de loc FastAPI brut).
+    assert caught.value.details[0]["field"] == "page_size"
 
 
 def test_regular_user_cannot_write_profiles(alice: GandalClient, unique_name: str) -> None:
