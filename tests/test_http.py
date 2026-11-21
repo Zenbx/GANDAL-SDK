@@ -48,6 +48,22 @@ def test_request_maps_api_error_envelope() -> None:
 
 
 @respx.mock
+def test_request_maps_agent_string_error() -> None:
+    """L'agent reseau renvoie {error: \"message\"} : le message est conserve."""
+    respx.post("http://agent.test/v1/flows").respond(
+        403, json={"error": "operation interdite pour ce compte"}
+    )
+    transport = HttpTransport("http://agent.test")
+    try:
+        with pytest.raises(GandalApiError) as caught:
+            transport.request("POST", "/v1/flows", json={})
+        assert caught.value.message == "operation interdite pour ce compte"
+        assert caught.value.status == 403
+    finally:
+        transport.close()
+
+
+@respx.mock
 def test_request_sends_bearer_when_set() -> None:
     """Le jeton est injecte dans Authorization."""
     route = respx.get("http://example.test/api/v1/auth/me").respond(

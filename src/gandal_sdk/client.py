@@ -31,8 +31,8 @@ class GandalClient:
 
         retry regle les relances automatiques ; RetryPolicy(max_attempts=1) les desactive.
         cell_urls / cell_tokens / cell_verify : endpoint, jeton et verification TLS
-        propres a chaque cellule, par nom (hypervisor, iam) ; une cellule sans
-        endpoint leve CellUnavailable.
+        propres a chaque cellule, par nom (hypervisor, iam, network) ; une cellule
+        sans endpoint leve CellUnavailable.
         """
         self._cell_urls = dict(cell_urls or {})
         self._cell_verify = dict(cell_verify or {})
@@ -44,7 +44,7 @@ class GandalClient:
         self.hypervisor = HypervisorCell(
             self._cell_transport("hypervisor", timeout, retry, tokens)
         )
-        self.network = NetworkCell()
+        self.network = NetworkCell(self._cell_transport("network", timeout, retry, tokens))
         self.storage = StorageCell()
         self.dns = DnsCell()
         self.notifications = NotificationsCell()
@@ -78,6 +78,10 @@ class GandalClient:
                 cell_tokens["iam"] = credentials.iam_token
             if credentials.iam_ca:
                 cell_verify["iam"] = credentials.iam_ca
+        if credentials.network_endpoint:
+            cell_urls["network"] = credentials.network_endpoint
+            if credentials.network_token:
+                cell_tokens["network"] = credentials.network_token
         client = cls(
             credentials.endpoint,
             timeout=timeout,
@@ -124,6 +128,14 @@ class GandalClient:
 
             not_ready("iam")
         self.iam._http.set_token(token)
+
+    def set_network_token(self, token: str) -> None:
+        """Injecte le jeton Bearer de l'agent reseau (.secrets/api-token)."""
+        if self.network._http is None:
+            from gandal_sdk.cells._base import not_ready
+
+            not_ready("network")
+        self.network._http.set_token(token)
 
     def close(self) -> None:
         """Ferme les connexions HTTP du client et de ses cellules."""

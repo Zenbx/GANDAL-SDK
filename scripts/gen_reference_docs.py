@@ -248,18 +248,33 @@ def main() -> None:
         ),
     )
 
+    net = class_methods(SRC / "cells" / "network" / "cell.py", "NetworkCell")
+    write_method_page(
+        "Reseau",
+        "Agent reseau (executions /v1, check|apply). Contrat : agent_reseau "
+        "docs/endpoints.",
+        "client.network",
+        net,
+        DOCS / "reseau.md",
+        notes=(
+            "!!! warning\n    Sans `cell_urls['network']` / "
+            "`GANDAL_NETWORK_ENDPOINT`, `CellUnavailable`.\n\n"
+            "!!! note\n    Metier projet : `client.orchestration.networks`. "
+            "Toujours `check` avant `apply`."
+        ),
+    )
+
     stub_parts = [
         "# Cellules encore en stub",
         "",
         "Ces cellules ne sont **pas** branchees. Chaque appel leve `CellUnavailable`.",
         "",
         "Ne pas confondre avec l'orchestration : `client.orchestration.networks` et "
-        "`client.orchestration.storages` parlent a iaas-api ; `client.network` / "
-        "`client.storage` parleront aux futures cellules.",
+        "`client.orchestration.storages` parlent a iaas-api. La cellule reseau est "
+        "integree (`client.network`) ; stockage / DNS / notifications restent en stub.",
         "",
     ]
     for stub_file, class_name, title, access in [
-        ("network.py", "NetworkCell", "Cellule reseau (stub)", "client.network"),
         ("storage.py", "StorageCell", "Cellule stockage (stub)", "client.storage"),
         ("dns.py", "DnsCell", "Cellule DNS (stub)", "client.dns"),
         ("notifications.py", "NotificationsCell", "Cellule notifications (stub)",

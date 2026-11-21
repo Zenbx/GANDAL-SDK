@@ -128,3 +128,31 @@ def test_iam_credentials_from_env_and_file(tmp_path: Path) -> None:
     assert creds.iam_token == "secret-iam"
     assert creds.iam_ca.endswith("ca.crt")
     assert "secret-iam" not in repr(creds)
+
+
+@respx.mock
+def test_from_env_configures_network_cell(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """L'endpoint et le jeton de l'agent reseau viennent du profil / env."""
+    path = tmp_path / "credentials"
+    path.write_text(
+        "[default]\nendpoint = http://api.test\n"
+        "network_endpoint = http://agent-fichier.test\nnetwork_token = jeton-fichier\n"
+    )
+    monkeypatch.setenv("GANDAL_CREDENTIALS_FILE", str(path))
+    for name in (
+        "GANDAL_ENDPOINT",
+        "GANDAL_TOKEN",
+        "GANDAL_PROFILE",
+        "GANDAL_NETWORK_ENDPOINT",
+    ):
+        monkeypatch.delenv(name, raising=False)
+    monkeypatch.setenv("GANDAL_NETWORK_TOKEN", "jeton-env")
+    route = respx.get("http://agent-fichier.test/v1/health").respond(
+        200, json={"status": "ok"}
+    )
+    with GandalClient.from_env() as client:
+        assert client.network.health() == {"status": "ok"}
+    assert route.calls.last.request.headers["Authorization"] == "Bearer jeton-env"
+    assert "jeton" not in repr(resolve_credentials(path=path, environ={}))

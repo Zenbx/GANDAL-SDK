@@ -59,7 +59,7 @@ def test_cell_stubs_raise_unavailable() -> None:
                 VmSpec(name="v", ram_gb=1, vcpu=1, vram_gb=0, ssd_gb=10)
             )
         with pytest.raises(CellUnavailable):
-            client.network.create_network("p1", "net")
+            client.network.create_network(target_id="t", resource_key="k", name="net")
         with pytest.raises(CellUnavailable):
             from gandal_sdk.cells.storage import StorageSpec
 

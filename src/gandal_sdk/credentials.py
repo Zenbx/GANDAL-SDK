@@ -21,12 +21,18 @@ Exemple de fichier :
     iam_endpoint = https://10.30.0.30:8081/v1
     iam_token = ...
     iam_ca = ~/.gandal/gandal-ca.crt
+    network_endpoint = http://127.0.0.1:8444
+    network_token = ...
 
 La cellule hyperviseur suit le meme ordre avec GANDAL_HYPERVISOR_ENDPOINT,
 GANDAL_HYPERVISOR_TOKEN et les cles hypervisor_endpoint / hypervisor_token.
 
 La cellule IAM suit le meme ordre avec GANDAL_IAM_ENDPOINT, GANDAL_IAM_TOKEN,
 GANDAL_IAM_CA et les cles iam_endpoint / iam_token / iam_ca.
+
+La cellule reseau (agent_reseau) suit le meme ordre avec
+GANDAL_NETWORK_ENDPOINT, GANDAL_NETWORK_TOKEN et les cles
+network_endpoint / network_token.
 """
 
 from __future__ import annotations
@@ -53,6 +59,8 @@ class Credentials:
     iam_endpoint: str | None = None
     iam_token: str | None = field(default=None, repr=False)
     iam_ca: str | None = None
+    network_endpoint: str | None = None
+    network_token: str | None = field(default=None, repr=False)
 
 
 def default_credentials_path(environ: Mapping[str, str] | None = None) -> Path:
@@ -120,4 +128,10 @@ def resolve_credentials(
         iam_endpoint=env.get("GANDAL_IAM_ENDPOINT") or file_values.get("iam_endpoint") or None,
         iam_token=env.get("GANDAL_IAM_TOKEN") or file_values.get("iam_token") or None,
         iam_ca=_expand_path(env.get("GANDAL_IAM_CA") or file_values.get("iam_ca")),
+        network_endpoint=env.get("GANDAL_NETWORK_ENDPOINT")
+        or file_values.get("network_endpoint")
+        or None,
+        network_token=env.get("GANDAL_NETWORK_TOKEN")
+        or file_values.get("network_token")
+        or None,
     )

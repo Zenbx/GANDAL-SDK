@@ -8,7 +8,7 @@ from gandal_sdk.cells.iam import IamCell
 from gandal_sdk.cells.network import NetworkCell, NetworkRef
 from gandal_sdk.cells.notifications import Notification, NotificationsCell
 from gandal_sdk.cells.storage import StorageCell, StorageRef, StorageSpec
-from gandal_sdk.errors import CellUnavailable
+from gandal_sdk.errors import CellUnavailable, GandalError
 
 
 def test_iam_unconfigured_raises() -> None:
@@ -37,21 +37,20 @@ def test_hypervisor_methods_raise() -> None:
         cell.delete_vm(ref)
 
 
-def test_network_methods_raise() -> None:
-    """Toutes les operations reseau stubbees echouent clairement."""
+def test_network_unconfigured_raises() -> None:
+    """Sans endpoint reseau, les appels HTTP levent CellUnavailable."""
     cell = NetworkCell()
     net = NetworkRef(network_id="n1")
-    vm = VmRef(vm_id="vm-1")
     with pytest.raises(CellUnavailable):
-        cell.rename_network(net, "x")
+        cell.health()
     with pytest.raises(CellUnavailable):
-        cell.attach_vm(net, vm)
+        cell.create_network(target_id="t", resource_key="k", name="n")
     with pytest.raises(CellUnavailable):
-        cell.detach_vm(net, vm)
+        cell.rename_network(net, "x", target_id="t")
     with pytest.raises(CellUnavailable):
-        cell.detach_vm_from_project(vm, "p")
-    with pytest.raises(CellUnavailable):
-        cell.delete_network(net)
+        cell.delete_network(net, target_id="t")
+    with pytest.raises(GandalError, match="pas d'operation unique"):
+        cell.detach_vm_from_project("vm-1", "p")
 
 
 def test_storage_methods_raise() -> None:

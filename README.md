@@ -7,7 +7,8 @@ Il expose un client unique (`GandalClient`) qui parle :
 - a l'API d'**orchestration** (`iaas-api`, helpers typés `/api/v1`) ;
 - a la cellule **IAM** (decision-service + OIDC) ;
 - a la cellule **hyperviseur** (pool XCP-ng) ;
-- aux autres cellules (reseau, stockage, DNS, notifications) au fur et a mesure
+- a la cellule **reseau** (`agent_reseau`, executions `/v1`) ;
+- aux cellules restantes (stockage, DNS, notifications) au fur et a mesure
   qu'elles sont livrees (stubs pour l'instant).
 
 Le SDK n'est **pas** un serveur : vous l'installez dans votre application, qui
@@ -123,10 +124,13 @@ hypervisor_token = ...
 iam_endpoint = https://10.30.0.30:8081/v1
 iam_token = ...
 iam_ca = ~/.gandal/gandal-ca.crt
+network_endpoint = http://127.0.0.1:8444
+network_token = ...
 ```
 
 Variables equivalentes : `GANDAL_ENDPOINT`, `GANDAL_TOKEN`, `GANDAL_PROFILE`,
-`GANDAL_HYPERVISOR_*`, `GANDAL_IAM_*` (detail dans la [doc Identifiants](docs/guide/identifiants.md)).
+`GANDAL_HYPERVISOR_*`, `GANDAL_IAM_*`, `GANDAL_NETWORK_*`
+(detail dans la [doc Identifiants](docs/guide/identifiants.md)).
 
 ```python
 from gandal_sdk import GandalClient
@@ -166,9 +170,10 @@ except WaiterTimeout:
 | `storages.wait_until_deleted` | `404` | - | 5 s x 60 |
 | `requests.wait_until_accepted` | `accepted` | `refused`, `cancelled` | 15 s x 240 |
 
-### Cellules IAM et hyperviseur (apercu)
+### Cellules IAM, hyperviseur et reseau (apercu)
 
-Sans endpoint configure, `client.iam` / `client.hypervisor` levent `CellUnavailable`.
+Sans endpoint configure, `client.iam` / `client.hypervisor` / `client.network`
+levent `CellUnavailable`.
 
 ```python
 # IAM : GANDAL_IAM_ENDPOINT / TOKEN / CA, ou cell_urls / cell_tokens / cell_verify
@@ -189,10 +194,22 @@ created = client.hypervisor.create_vm(
     VmSpec(name="sdk-it-web", ram_gb=1, vcpu=1, vram_gb=0, ssd_gb=10)
 )
 client.hypervisor.wait_for_operation(created.operation)
+
+# Reseau : GANDAL_NETWORK_ENDPOINT / TOKEN (toujours check puis apply)
+from gandal_sdk.cells.network import NetworkMode
+
+plan = client.network.create_network(
+    target_id="cluster-lab",
+    resource_key="request-a",
+    name="Projet A",
+    mode=NetworkMode.CHECK,
+)
+client.network.require_succeeded(plan)
 ```
 
 Guides detailles : [Garde IAM](docs/guide/garde-iam.md), [Acces SSH](docs/guide/acces-ssh.md),
-[Hyperviseur](docs/guide/hyperviseur.md), recettes sous [docs/recettes/](docs/recettes/).
+[Hyperviseur](docs/guide/hyperviseur.md), [Reseau](docs/guide/reseau.md),
+recettes sous [docs/recettes/](docs/recettes/).
 
 ---
 
@@ -323,7 +340,7 @@ Methodes generiques `get` / `post` / `put` / `patch` / `delete` en echappatoire.
 | `client.orchestration` | Disponible (helpers typés `/api/v1`) |
 | `client.iam` | Disponible ; contrat 1.7.0 (familles A-G) |
 | `client.hypervisor` | Disponible ; valide faux pool et pool XCP-ng (bac a sable) |
-| `client.network` | Stub |
+| `client.network` | Disponible ; agent_reseau (executions `/v1`, check/apply) |
 | `client.storage` | Stub |
 | `client.dns` | Stub |
 | `client.notifications` | Stub |

@@ -70,6 +70,7 @@ nav:
       - Garde IAM: guide/garde-iam.md
       - Acces SSH: guide/acces-ssh.md
       - Hyperviseur: guide/hyperviseur.md
+      - Reseau: guide/reseau.md
       - Erreurs et relances: guide/erreurs-et-relances.md
       - Pagination et waiters: guide/pagination-et-waiters.md
   - Recettes:
@@ -102,6 +103,7 @@ nav:
           - F - Machines et politiques: reference/iam/f-machines.md
           - G - Ressources et tags: reference/iam/g-ressources.md
       - Hyperviseur: reference/hyperviseur.md
+      - Reseau: reference/reseau.md
       - Cellules stubs: reference/cellules-stubs.md
       - GardeIam: reference/garde.md
       - AccesSsh: reference/acces-ssh.md

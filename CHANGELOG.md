@@ -6,6 +6,20 @@ version, migration comprise, est dans docs/releases/.
 
 ## [Non publié]
 
+### Ajouté
+
+- `client.network` branche sur l'agent reseau (`agent_reseau`) : enveloppe
+  d'execution, `run` / `health` / `get_execution`, helpers `xcpng.networks` et
+  `vm-networks`, raccourcis `user_vms` / `vm_acl` / `flows` / `xcpng`.
+- Credentials `GANDAL_NETWORK_ENDPOINT` / `GANDAL_NETWORK_TOKEN` et
+  `set_network_token`.
+
+### Modifie (incompatible)
+
+- Signatures `NetworkCell` : plus de stub `(project_id, name)` ; les helpers
+  exigent `target_id`, `resource_key`, `mode` check|apply, conformes a l'agent.
+- `detach_vm_from_project` leve `GandalError` (pas d'operation unique cote agent).
+
 ## [0.6.0] - 2026-11-16
 
 Notes complètes : [docs/releases/v0.6.0.md](docs/releases/v0.6.0.md).

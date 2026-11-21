@@ -159,6 +159,9 @@ class HttpTransport:
                 code = str(err.get("code") or code)
                 message = str(err.get("message") or message)
                 details = err.get("details")
+            elif isinstance(err, str):
+                # Agent reseau : {"error": "message"} sans enveloppe {code, message}.
+                message = err
             elif "type" in body and "title" in body:
                 # RFC 9457 : type URI + title + detail + correlation_id.
                 type_uri = str(body.get("type") or "")
